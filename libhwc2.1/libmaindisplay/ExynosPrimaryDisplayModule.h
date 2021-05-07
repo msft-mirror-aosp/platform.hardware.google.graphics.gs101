@@ -240,14 +240,19 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         };
 
         bool parseAtcProfile();
-        int32_t setAtcMode(std::string mode_name);
-        int32_t setAtcAmbientLight(std::vector<atc_lux_map>, uint32_t lux);
+        int32_t setAtcMode(std::string mode_name, bool force_update);
+        uint32_t getAtcLuxMapIndex(std::vector<atc_lux_map>, uint32_t lux);
+        int32_t setAtcAmbientLight(uint32_t ambient_light, uint32_t strenght, bool force_update);
 
         std::map<std::string, atc_mode> mAtcModeSetting;
         bool mAtcInit;
         LbeState mCurrentLbeState = LbeState::OFF;
         std::string mCurrentAtcModeName;
         uint32_t mCurrentLux = 0;
+        uint32_t mAtcLuxMapIndex = 0;
+        CtrlValue<uint32_t> mAtcAmbientLight;
+        CtrlValue<uint32_t> mAtcStrength;
+        std::unordered_map<std::string, CtrlValue<int32_t>> mAtcSubSetting;
 };
 
 #endif
