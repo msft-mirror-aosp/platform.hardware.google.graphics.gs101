@@ -107,6 +107,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         virtual int32_t setColorTransform(const float* matrix, int32_t hint);
         virtual int deliverWinConfigData();
         virtual int32_t updateColorConversionInfo();
+        virtual int32_t getColorAdjustedDbv(uint32_t &dbv_adj);
 
         virtual void initLbe();
         virtual void setLbeState(LbeState state);

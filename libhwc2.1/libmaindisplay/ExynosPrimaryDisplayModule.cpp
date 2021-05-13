@@ -612,6 +612,8 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
             : displaycolor::BrightnessMode::BM_NOMINAL;
 
     mDisplaySceneInfo.displayScene.force_hdr = getBrightnessState().dim_sdr_ratio != 1.0;
+    mDisplaySceneInfo.displayScene.lhbm_on = getBrightnessState().local_hbm;
+    mDisplaySceneInfo.displayScene.dbv = moduleDisplayInterface->getDbv();
 
     if (hwcCheckDebugMessages(eDebugColorManagement))
         mDisplaySceneInfo.printDisplayScene();
@@ -623,6 +625,13 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
     }
 
     return ret;
+}
+
+int32_t ExynosPrimaryDisplayModule::getColorAdjustedDbv(uint32_t &dbv_adj) {
+    dbv_adj = mDisplayColorInterface->GetPipelineData(DisplayType::DISPLAY_PRIMARY)
+                           ->Panel()
+                           .GetAdjustedBrightnessLevel();
+    return NO_ERROR;
 }
 
 bool ExynosPrimaryDisplayModule::DisplaySceneInfo::needDisplayColorSetting()

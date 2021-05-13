@@ -277,6 +277,9 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
         /// Get a handle to Display Quality Enhancer (DQE) data accessors.
         virtual const IDqe& Dqe() const = 0;
 
+        /// Get a handle to panel data accessors
+        virtual const IPanel& Panel() const = 0;
+
         virtual ~IDisplayPipelineData() {}
     };
 
