@@ -18,6 +18,7 @@
 #define EXYNOS_RESOURCE_RESTRICTION_H_
 
 #include "ExynosHWCModule.h"
+
 /*******************************************************************
  * Structures for restrictions
  * ****************************************************************/

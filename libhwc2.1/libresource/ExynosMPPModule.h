@@ -20,6 +20,8 @@
 
 #define MAX_DPP_ROT_SRC_SIZE (3040*1440)
 
+namespace gs101 {
+
 class ExynosMPPModule : public ExynosMPP {
     public:
         ExynosMPPModule(ExynosResourceManager* resourceManager, uint32_t physicalType, uint32_t logicalType, const char *name,
@@ -30,5 +32,7 @@ class ExynosMPPModule : public ExynosMPP {
     public:
         uint32_t mChipId;
 };
+
+}  // namespace gs101
 
 #endif

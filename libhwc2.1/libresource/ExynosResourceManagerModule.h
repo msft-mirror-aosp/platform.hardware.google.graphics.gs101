@@ -18,6 +18,8 @@
 
 #include "ExynosResourceManager.h"
 
+namespace gs101 {
+
 class ExynosResourceManagerModule : public ExynosResourceManager {
     public:
         ExynosResourceManagerModule(ExynosDevice* device);
@@ -27,5 +29,7 @@ class ExynosResourceManagerModule : public ExynosResourceManager {
         void setFrameRateForPerformance(ExynosMPP &mpp,
                                         AcrylicPerformanceRequestFrame *frame) override;
 };
+
+}  // namespace gs101
 
 #endif // _EXYNOS_RESOURCE_MANAGER_MODULE_H

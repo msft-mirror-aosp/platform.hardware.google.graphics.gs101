@@ -19,6 +19,8 @@
 #include "ExynosDisplay.h"
 #include "ExynosVirtualDisplay.h"
 
+namespace gs101 {
+
 class ExynosVirtualDisplayModule : public ExynosVirtualDisplay {
 public:
     ExynosVirtualDisplayModule(uint32_t displayId, ExynosDevice *device);
@@ -32,5 +34,7 @@ public:
             hwc2_config_t config,
             int32_t /*hwc2_attribute_t*/ attribute, int32_t* outValue);
 };
+
+}
 
 #endif

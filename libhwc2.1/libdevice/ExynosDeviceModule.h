@@ -19,11 +19,15 @@
 
 #include "ExynosDevice.h"
 
+namespace gs101 {
+
 class ExynosDeviceModule : public ExynosDevice {
     public:
         ExynosDeviceModule();
         virtual ~ExynosDeviceModule();
 
 };
+
+}  // namespace gs101
 
 #endif

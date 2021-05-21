@@ -37,11 +37,7 @@ mpp_phycal_type_t getMPPTypeFromDPPChannel(uint32_t channel) {
     return MPP_P_TYPE_MAX;
 }
 
-// enable map layerDataMappingInfo comparison in needDisplayColorSetting()
-inline bool operator==(const ExynosPrimaryDisplayModule::DisplaySceneInfo::LayerMappingInfo &lm1,
-                       const ExynosPrimaryDisplayModule::DisplaySceneInfo::LayerMappingInfo &lm2) {
-    return lm1.dppIdx == lm2.dppIdx && lm1.planeId == lm2.planeId;
-}
+using namespace gs101;
 
 ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice *device)
     :    ExynosPrimaryDisplay(index, device), mDisplayColorLoader(DISPLAY_COLOR_LIB)

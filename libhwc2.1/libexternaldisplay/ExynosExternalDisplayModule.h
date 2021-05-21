@@ -19,11 +19,15 @@
 #include "ExynosDisplay.h"
 #include "ExynosExternalDisplay.h"
 
+namespace gs101 {
+
 class ExynosExternalDisplayModule : public ExynosExternalDisplay {
     public:
         ExynosExternalDisplayModule(uint32_t index, ExynosDevice *device);
         ~ExynosExternalDisplayModule();
         virtual int32_t validateWinConfigData();
 };
+
+}  // namespace gs101
 
 #endif

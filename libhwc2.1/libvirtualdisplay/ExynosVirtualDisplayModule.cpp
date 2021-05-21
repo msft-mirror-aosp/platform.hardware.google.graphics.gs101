@@ -18,6 +18,8 @@
 
 #include "ExynosVirtualDisplayModule.h"
 
+using namespace gs101;
+
 ExynosVirtualDisplayModule::ExynosVirtualDisplayModule(uint32_t index, ExynosDevice *device)
     :   ExynosVirtualDisplay(index, device)
 {

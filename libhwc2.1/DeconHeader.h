@@ -27,4 +27,5 @@ enum decon_idma_type {
   ODMA_WB,
   MAX_DECON_DMA_TYPE,
 };
+
 #endif

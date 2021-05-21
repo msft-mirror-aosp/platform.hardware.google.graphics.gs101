@@ -19,6 +19,8 @@
 #include "ExynosResourceManager.h"
 #include "ExynosPrimaryDisplayModule.h"
 
+using namespace gs101;
+
 ExynosMPPModule::ExynosMPPModule(ExynosResourceManager* resourceManager,
         uint32_t physicalType, uint32_t logicalType, const char *name,
         uint32_t physicalIndex, uint32_t logicalIndex, uint32_t preAssignInfo)

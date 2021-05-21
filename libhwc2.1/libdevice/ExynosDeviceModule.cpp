@@ -17,6 +17,9 @@
 #include "ExynosDeviceModule.h"
 
 extern struct exynos_hwc_control exynosHWCControl;
+
+using namespace gs101;
+
 ExynosDeviceModule::ExynosDeviceModule()
     : ExynosDevice()
 {

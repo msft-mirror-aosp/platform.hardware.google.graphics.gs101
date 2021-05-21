@@ -22,6 +22,8 @@
 #include <log/log.h>
 #include <string>
 
+namespace gs101 {
+
 class DisplayColorLoader {
     public:
       DisplayColorLoader(const char *lib_name) {
@@ -58,5 +60,7 @@ class DisplayColorLoader {
       void *lib_handle;
       displaycolor::IDisplayColorGS101* (*get_display_color_gs101)(size_t);
 };
+
+}  // namespace gs101
 
 #endif //DISPLAY_COLOR_LOADER_H
