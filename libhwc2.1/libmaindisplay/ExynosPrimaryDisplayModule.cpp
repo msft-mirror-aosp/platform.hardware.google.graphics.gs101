@@ -38,21 +38,33 @@ mpp_phycal_type_t getMPPTypeFromDPPChannel(uint32_t channel) {
 }
 
 using namespace gs101;
+#if 0
+// enable map layerDataMappingInfo comparison in needDisplayColorSetting()
+inline bool operator==(const ExynosPrimaryDisplayModule::DisplaySceneInfo::LayerMappingInfo &lm1,
+                       const ExynosPrimaryDisplayModule::DisplaySceneInfo::LayerMappingInfo &lm2) {
+    return lm1.dppIdx == lm2.dppIdx && lm1.planeId == lm2.planeId;
+}
+#endif
 
 ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice *device)
-    :    ExynosPrimaryDisplay(index, device), mDisplayColorLoader(DISPLAY_COLOR_LIB)
+    :    ExynosPrimaryDisplay(index, device)/*, mDisplayColorLoader(DISPLAY_COLOR_LIB)*/
 {
 #ifdef FORCE_GPU_COMPOSITION
     exynosHWCControl.forceGpu = true;
 #endif
 
+#if 0
+    mDisplayColorInterface = mDisplayColorLoader.GetDisplayColorGS101(1);
     mDisplaySceneInfo.displayScene.dpu_bit_depth = BitDepth::kTen;
+#endif
 }
 
+#if 0
 int ExynosPrimaryDisplayModule::initDisplayColor() {
     mDisplayColorInterface = mDisplayColorLoader.GetDisplayColorGS101(1);
     return mDisplayColorInterface == nullptr ? -EINVAL : NO_ERROR;
 }
+#endif
 
 ExynosPrimaryDisplayModule::~ExynosPrimaryDisplayModule () {
 }
@@ -119,6 +131,7 @@ void ExynosPrimaryDisplayModule::doPreProcessing() {
     }
 }
 
+#if 0
 int32_t ExynosPrimaryDisplayModule::getColorModes(
         uint32_t* outNumModes, int32_t* outModes)
 {
@@ -707,6 +720,7 @@ void ExynosPrimaryDisplayModule::DisplaySceneInfo::printLayerColorData(
         ALOGD("\ttm_knee_y(%d)", layerData.dynamic_metadata.tm_knee_y);
     }
 }
+#endif
 
 bool ExynosPrimaryDisplayModule::parseAtcProfile() {
     Json::Value root;

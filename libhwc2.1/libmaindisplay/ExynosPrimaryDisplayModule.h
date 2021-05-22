@@ -98,6 +98,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         void usePreDefinedWindow(bool use);
         virtual int32_t validateWinConfigData();
         void doPreProcessing();
+#if 0
         virtual int32_t getColorModes(
                 uint32_t* outNumModes,
                 int32_t* outModes);
@@ -110,12 +111,14 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         virtual int deliverWinConfigData();
         virtual int32_t updateColorConversionInfo();
         virtual int32_t getColorAdjustedDbv(uint32_t &dbv_adj);
+#endif
 
         virtual void initLbe();
         virtual void setLbeState(LbeState state);
         virtual void setLbeAmbientLight(int value);
         virtual LbeState getLbeState();
 
+#if 0
         class DisplaySceneInfo {
             public:
                 struct LayerMappingInfo {
@@ -234,6 +237,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         IDisplayColorGS101 *mDisplayColorInterface;
         DisplaySceneInfo mDisplaySceneInfo;
         DisplayColorLoader mDisplayColorLoader;
+#endif
 
         struct atc_lux_map {
             uint32_t lux;
