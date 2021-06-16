@@ -20,6 +20,8 @@
 #include <json/reader.h>
 #include <json/value.h>
 
+#include <cmath>
+
 #include "ExynosDisplayDrmInterfaceModule.h"
 #include "ExynosHWCDebug.h"
 
@@ -369,6 +371,7 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
 
     ret = ExynosDisplay::deliverWinConfigData();
 
+    checkAtcAnimation();
     return ret;
 }
 
@@ -761,6 +764,16 @@ bool ExynosPrimaryDisplayModule::parseAtcProfile() {
                                                   nodes[i][kAtcProfileStMapStr][index].asUInt()});
         }
 
+        if (!nodes[i][kAtcProfileStUpStepStr].empty())
+            mode.st_up_step = nodes[i][kAtcProfileStUpStepStr].asUInt();
+        else
+            mode.st_up_step = kAtcStStep;
+
+        if (!nodes[i][kAtcProfileStDownStepStr].empty())
+            mode.st_down_step = nodes[i][kAtcProfileStDownStepStr].asUInt();
+        else
+            mode.st_down_step = kAtcStStep;
+
         if (nodes[i][kAtcProfileSubSettingStr].size() != kAtcSubSetting.size()) return false;
 
         for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++) {
@@ -789,6 +802,10 @@ void ExynosPrimaryDisplayModule::initLbe() {
     }
 
     mAtcInit = true;
+    mAtcAmbientLight.set_dirty();
+    mAtcStrength.set_dirty();
+    for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++)
+        mAtcSubSetting[it->first.c_str()].set_dirty();
 }
 
 uint32_t ExynosPrimaryDisplayModule::getAtcLuxMapIndex(std::vector<atc_lux_map> map, uint32_t lux) {
@@ -803,16 +820,18 @@ uint32_t ExynosPrimaryDisplayModule::getAtcLuxMapIndex(std::vector<atc_lux_map> 
     return index;
 }
 
-int32_t ExynosPrimaryDisplayModule::setAtcAmbientLight(uint32_t ambient_light, uint32_t strength,
-                                                       bool force_update) {
+int32_t ExynosPrimaryDisplayModule::setAtcStrength(uint32_t strength) {
     mAtcStrength.store(strength);
-    if (mAtcStrength.is_dirty() || force_update) {
+    if (mAtcStrength.is_dirty()) {
         if (writeIntToFile(ATC_ST_FILE_NAME, mAtcStrength.get()) != NO_ERROR) return -EPERM;
         mAtcStrength.clear_dirty();
     }
+    return NO_ERROR;
+}
 
+int32_t ExynosPrimaryDisplayModule::setAtcAmbientLight(uint32_t ambient_light) {
     mAtcAmbientLight.store(ambient_light);
-    if (mAtcAmbientLight.is_dirty() || force_update) {
+    if (mAtcAmbientLight.is_dirty()) {
         if (writeIntToFile(ATC_AMBIENT_LIGHT_FILE_NAME, mAtcAmbientLight.get()) != NO_ERROR)
             return -EPERM;
         mAtcAmbientLight.clear_dirty();
@@ -821,54 +840,69 @@ int32_t ExynosPrimaryDisplayModule::setAtcAmbientLight(uint32_t ambient_light, u
     return NO_ERROR;
 }
 
-int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name, bool force_update) {
-    auto it = mAtcModeSetting.find(mode_name);
-    if (it == mAtcModeSetting.end()) {
-        ALOGW("Atc %s mode not found", mode_name.c_str());
-        return -EINVAL;
-    }
-    atc_mode mode = it->second;
+int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
+    auto mode_data = mAtcModeSetting.find(mode_name);
+    uint32_t ambient_light = 0;
+    uint32_t strength = 0;
+    bool enable = (!mode_name.empty()) && (mode_data != mAtcModeSetting.end());
 
-    for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++) {
-        mAtcSubSetting[it->first.c_str()].store(mode.sub_setting[it->first.c_str()]);
-        if (mAtcSubSetting[it->first.c_str()].is_dirty() || force_update) {
-            if (writeIntToFile(it->second.c_str(), mAtcSubSetting[it->first.c_str()].get()) !=
-                NO_ERROR)
-                return -EPERM;
-            mAtcSubSetting[it->first.c_str()].clear_dirty();
+    if (enable) {
+        atc_mode mode = mode_data->second;
+        for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++) {
+            mAtcSubSetting[it->first.c_str()].store(mode.sub_setting[it->first.c_str()]);
+            if (mAtcSubSetting[it->first.c_str()].is_dirty()) {
+                if (writeIntToFile(it->second.c_str(), mAtcSubSetting[it->first.c_str()].get()) !=
+                    NO_ERROR)
+                    return -EPERM;
+                mAtcSubSetting[it->first.c_str()].clear_dirty();
+            }
         }
+        mAtcStUpStep = mode.st_up_step;
+        mAtcStDownStep = mode.st_down_step;
+
+        uint32_t index = getAtcLuxMapIndex(mode.lux_map, mCurrentLux);
+        ambient_light = mode.lux_map[index].al;
+        strength = mode.lux_map[index].st;
     }
 
-    mAtcLuxMapIndex = getAtcLuxMapIndex(mode.lux_map, mCurrentLux);
-    if (setAtcAmbientLight(mode.lux_map[mAtcLuxMapIndex].al, mode.lux_map[mAtcLuxMapIndex].st,
-                           force_update) != NO_ERROR) {
+    if (setAtcAmbientLight(ambient_light) != NO_ERROR) {
         ALOGE("Fail to set atc ambient light for %s mode", mode_name.c_str());
         return -EPERM;
     }
 
-    mCurrentAtcModeName = mode_name;
-    ALOGI("mCurrentAtcModeName %s", mCurrentAtcModeName.c_str());
+    if (setAtcStDimming(strength) != NO_ERROR) {
+        ALOGE("Fail to set atc st dimming for %s mode", mode_name.c_str());
+        return -EPERM;
+    }
+
+    if (!enable && isInAtcAnimation()) {
+        mPendingAtcOff = true;
+    } else {
+        if (setAtcEnable(enable) != NO_ERROR) {
+            ALOGE("Fail to set atc enable = %d", enable);
+            return -EPERM;
+        }
+    }
+
+    mCurrentAtcModeName = enable ? mode_name : "NULL";
+    ALOGI("atc enable=%d (mode=%s, pending off=%s)", enable, mCurrentAtcModeName.c_str(),
+          mPendingAtcOff ? "true" : "false");
     return NO_ERROR;
 }
 void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     if (!mAtcInit) return;
     std::string modeStr;
-    uint32_t atc_on = 0;
     switch (state) {
         case LbeState::OFF:
-            atc_on = 0;
             mCurrentLux = 0;
             break;
         case LbeState::NORMAL:
-            atc_on = 1;
             modeStr = kAtcModeNormalStr;
             break;
         case LbeState::HIGH_BRIGHTNESS:
-            atc_on = 1;
             modeStr = kAtcModeHbmStr;
             break;
         case LbeState::POWER_SAVE:
-            atc_on = 1;
             modeStr = kAtcModePowerSaveStr;
             break;
         default:
@@ -876,11 +910,9 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
             return;
     }
 
-    if (!modeStr.empty())
-        if (setAtcMode(modeStr, mCurrentAtcModeName.empty() ? true : false) != NO_ERROR) return;
+    if (setAtcMode(modeStr) != NO_ERROR) return;
 
     if (mCurrentLbeState != state) {
-        writeIntToFile(ATC_ENABLE_FILE_NAME, atc_on);
         mCurrentLbeState = state;
         mDevice->invalidate();
     }
@@ -898,8 +930,13 @@ void ExynosPrimaryDisplayModule::setLbeAmbientLight(int value) {
     atc_mode mode = it->second;
 
     uint32_t index = getAtcLuxMapIndex(mode.lux_map, value);
-    if (setAtcAmbientLight(mode.lux_map[index].al, mode.lux_map[index].st, false) != NO_ERROR) {
+    if (setAtcAmbientLight(mode.lux_map[index].al) != NO_ERROR) {
         ALOGE("Failed to set atc ambient light");
+        return;
+    }
+
+    if (setAtcStDimming(mode.lux_map[index].st) != NO_ERROR) {
+        ALOGE("Failed to set atc st dimming");
         return;
     }
 
@@ -912,4 +949,68 @@ void ExynosPrimaryDisplayModule::setLbeAmbientLight(int value) {
 
 LbeState ExynosPrimaryDisplayModule::getLbeState() {
     return mCurrentLbeState;
+}
+
+int32_t ExynosPrimaryDisplayModule::setAtcStDimming(uint32_t value) {
+    Mutex::Autolock lock(mAtcStMutex);
+    int32_t strength = mAtcStrength.get();
+    if (mAtcStTarget != value) {
+        mAtcStTarget = value;
+        uint32_t step = mAtcStTarget > strength ? mAtcStUpStep : mAtcStDownStep;
+
+        int diff = value - strength;
+        uint32_t steps = std::abs(diff) / step;
+        int remainder = std::abs(diff) % step;
+        if (remainder > 0) steps = steps + 1;
+        mAtcStStepLeft = steps;
+        ALOGI("setup atc st dimming=%d, steps=%d, step=%d", value, steps, step);
+    }
+
+    if (mAtcStStepLeft == 0 && !mAtcStrength.is_dirty()) return NO_ERROR;
+
+    if (strength < mAtcStTarget) {
+        strength = strength + mAtcStUpStep;
+        if (strength > mAtcStTarget) strength = mAtcStTarget;
+    } else if (strength > mAtcStTarget) {
+        strength = strength - mAtcStDownStep;
+        if (strength < mAtcStTarget) strength = mAtcStTarget;
+    } else
+        strength = mAtcStTarget;
+
+    if (setAtcStrength(strength) != NO_ERROR) {
+        ALOGE("Failed to set atc st");
+        return -EPERM;
+    }
+
+    if (mAtcStStepLeft > 0) mAtcStStepLeft--;
+    return NO_ERROR;
+}
+
+int32_t ExynosPrimaryDisplayModule::setAtcEnable(bool enable) {
+    mAtcEnable.store(enable);
+    if (mAtcEnable.is_dirty()) {
+        if (writeIntToFile(ATC_ENABLE_FILE_NAME, enable) != NO_ERROR) return -EPERM;
+        mAtcEnable.clear_dirty();
+    }
+    return NO_ERROR;
+}
+
+void ExynosPrimaryDisplayModule::checkAtcAnimation() {
+    if (!isInAtcAnimation()) return;
+
+    if (setAtcStDimming(mAtcStTarget) != NO_ERROR) {
+        ALOGE("Failed to set atc st dimming");
+        return;
+    }
+
+    if (mPendingAtcOff && mAtcStStepLeft == 0) {
+        if (setAtcEnable(false) != NO_ERROR) {
+            ALOGE("Failed to set atc enable to off");
+            return;
+        }
+        mPendingAtcOff = false;
+        ALOGI("atc enable is off (pending off=false)");
+    }
+
+    mDevice->invalidate();
 }

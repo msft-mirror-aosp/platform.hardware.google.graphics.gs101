@@ -26,6 +26,7 @@
 constexpr char kAtcJsonRaw[] =
         "{\"version\":\"0.0\",\"modes\":[{\"name\":\"normal\",\"lux_map\":[0,5000,10000,"
         "50000,70000],\"ambient_light_map\":[0,0,12,32,63],\"strength_map\":[0,0,128,128,200],"
+        "\"st_up_step\":2, \"st_down_step\":2,"
         "\"sub_setting\":{\"local_tone_gain\":128,\"noise_suppression_gain\":128,\"dither\":0,"
         "\"plain_weight_1\":10,\"plain_weight_2\":14,\"color_transform_mode\":2,\"preprocessing_"
         "enable\":1,\"upgrade_on\":0,\"TDR_max\":900,\"TDR_min\":256,\"backlight\":255,\"dimming_"
@@ -40,6 +41,9 @@ constexpr char kAtcProfileLuxMapStr[] = "lux_map";
 constexpr char kAtcProfileAlMapStr[] = "ambient_light_map";
 constexpr char kAtcProfileStMapStr[] = "strength_map";
 constexpr char kAtcProfileSubSettingStr[] = "sub_setting";
+constexpr char kAtcProfileStUpStepStr[] = "st_up_step";
+constexpr char kAtcProfileStDownStepStr[] = "st_down_step";
+constexpr uint32_t kAtcStStep = 2;
 
 constexpr char kAtcModeNormalStr[] = "normal";
 constexpr char kAtcModeHbmStr[] = "hbm";
@@ -248,12 +252,24 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         struct atc_mode {
             std::vector<atc_lux_map> lux_map;
             std::unordered_map<std::string, int32_t> sub_setting;
+            uint32_t st_up_step;
+            uint32_t st_down_step;
         };
 
         bool parseAtcProfile();
-        int32_t setAtcMode(std::string mode_name, bool force_update);
+        int32_t setAtcMode(std::string mode_name);
         uint32_t getAtcLuxMapIndex(std::vector<atc_lux_map>, uint32_t lux);
-        int32_t setAtcAmbientLight(uint32_t ambient_light, uint32_t strenght, bool force_update);
+        int32_t setAtcAmbientLight(uint32_t ambient_light);
+        int32_t setAtcStrength(uint32_t strenght);
+        int32_t setAtcStDimming(uint32_t target);
+        int32_t setAtcEnable(bool enable);
+        void checkAtcAnimation();
+        bool isInAtcAnimation() {
+            if (mAtcStStepLeft > 0)
+                return true;
+            else
+                return false;
+        };
 
         std::map<std::string, atc_mode> mAtcModeSetting;
         bool mAtcInit;
@@ -263,7 +279,14 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         uint32_t mAtcLuxMapIndex = 0;
         CtrlValue<uint32_t> mAtcAmbientLight;
         CtrlValue<uint32_t> mAtcStrength;
+        CtrlValue<uint32_t> mAtcEnable;
         std::unordered_map<std::string, CtrlValue<int32_t>> mAtcSubSetting;
+        uint32_t mAtcStStepLeft = 0;
+        uint32_t mAtcStTarget = 0;
+        uint32_t mAtcStUpStep;
+        uint32_t mAtcStDownStep;
+        Mutex mAtcStMutex;
+        bool mPendingAtcOff;
 };
 
 }  // namespace gs101
