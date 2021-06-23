@@ -53,7 +53,6 @@ ExynosDisplayDrmInterfaceModule::~ExynosDisplayDrmInterfaceModule()
 {
 }
 
-#if 0
 void ExynosDisplayDrmInterfaceModule::parseBpcEnums(const DrmProperty& property)
 {
     const std::vector<std::pair<uint32_t, const char *>> bpcEnums = {
@@ -422,7 +421,9 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorBlob(
         ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq)
 {
     /* dirty bit is valid only if enable is true */
-    if (!prop.id() || (stage.enable && !stage.dirty))
+    if (!prop.id())
+        return NO_ERROR;
+    if (!mForceDisplayColorSetting && stage.enable && !stage.dirty)
         return NO_ERROR;
 
     int32_t ret = 0;
@@ -481,8 +482,9 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorBlob(
 int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorSetting(
         ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq)
 {
-    if ((mColorSettingChanged == false) ||
-        (isPrimary() == false))
+    if (isPrimary() == false)
+        return NO_ERROR;
+    if (!mForceDisplayColorSetting && !mColorSettingChanged)
         return NO_ERROR;
 
     ExynosPrimaryDisplayModule* display =
@@ -748,7 +750,6 @@ uint32_t ExynosDisplayDrmInterfaceModule::SaveBlob::getBlob(uint32_t type)
     }
     return blobs[type];
 }
-#endif
 
 //////////////////////////////////////////////////// ExynosPrimaryDisplayDrmInterfaceModule //////////////////////////////////////////////////////////////////
 ExynosPrimaryDisplayDrmInterfaceModule::ExynosPrimaryDisplayDrmInterfaceModule(ExynosDisplay *exynosDisplay)
