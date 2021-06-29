@@ -257,20 +257,28 @@ const dpu_attr_map_t dpu_attr_map_table [] =
 };
 
 static ppc_table ppc_table_map = {
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV420,PPC_ROT_NO), {2.9, 2.6, 3.4, 5.1, 11.9, 2.6, 3.0}},
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV420,PPC_ROT), {2.0, 1.9, 3.3, 5.2, 7.0, 1.9, 3.2}},
+    /* G2D support only 2 plane YUV, so all YUV format should use YUV2P PPC table */
+    /* In case of Scale-Up, G2D should use same PPC table */
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV420,PPC_ROT_NO),   {3.5, 3.6, 4.3, 4.3, 3.5, 3.7, 3.7}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV420,PPC_ROT),      {2.8, 3.2, 3.9, 4.3, 3.6, 2.6, 2.6}},
 
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV8_2,PPC_ROT_NO), {1.9, 1.9, 2.7, 3.1, 4.1, 1.4, 2.4}},
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV8_2,PPC_ROT), {0.9, 0.9, 2.2, 2.0, 3.7, 0.9, 2.5}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV422,PPC_ROT_NO),   {3.5, 3.6, 4.3, 4.3, 3.5, 3.7, 3.7}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV422,PPC_ROT),      {2.8, 3.2, 3.9, 4.3, 3.6, 2.6, 2.6}},
 
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV422,PPC_ROT_NO), {3.1, 2.2, 3.6, 5.1, 7.0, 2.2, 3.4}},
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_YUV422,PPC_ROT), {2.7, 2.0, 3.0, 5.2, 6.5, 2.0, 3.3}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_P010,PPC_ROT_NO),     {3.5, 3.6, 4.3, 4.3, 3.5, 3.7, 3.7}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_P010,PPC_ROT),        {2.8, 3.2, 3.9, 4.3, 3.6, 2.6, 2.6}},
 
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_RGB32,PPC_ROT_NO), {3.1, 2.2, 3.6, 5.1, 7.0, 2.2, 3.4}},
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_RGB32,PPC_ROT), {2.7, 2.0, 3.0, 5.2, 6.5, 2.0, 3.3}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_RGB32,PPC_ROT_NO),    {3.2, 2.1, 2.6, 3.3, 3.6, 3.8, 3.8}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_RGB32,PPC_ROT),       {3.6, 2.1, 2.7, 3.3, 3.8, 3.5, 3.5}},
 
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_AFBC,PPC_ROT_NO), {3.0, 1.6, 1.6, 2.4, 3.2, 1.6, 2.8}},
-    {PPC_IDX(MPP_G2D,PPC_FORMAT_AFBC,PPC_ROT), {3.0, 1.6, 1.6, 2.4, 3.2, 1.6, 2.8}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_SBWC,PPC_ROT_NO),     {2.6, 1.4, 0.9, 1.0, 1.0, 3.6, 3.6}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_SBWC,PPC_ROT),        {2.6, 1.4, 0.9, 1.0, 1.0, 2.6, 2.6}},
+
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_AFBC_RGB,PPC_ROT_NO), {3.4, 0.3, 0.5, 0.8, 0.7, 1.6, 1.6}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_AFBC_RGB,PPC_ROT),    {3.6, 0.3, 0.8, 0.9, 0.9, 1.4, 1.4}},
+
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_AFBC_YUV,PPC_ROT_NO), {2.0, 0.8, 0.3, 0.3, 0.4, 2.9, 2.9}},
+    {PPC_IDX(MPP_G2D,PPC_FORMAT_AFBC_YUV,PPC_ROT),    {2.0, 0.8, 0.3, 0.3, 0.4, 2.6, 2.6}},
 };
 
 #endif
