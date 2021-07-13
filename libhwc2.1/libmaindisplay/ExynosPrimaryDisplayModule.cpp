@@ -628,12 +628,32 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 
     mDisplaySceneInfo.displayScene.force_hdr = getBrightnessState().dim_sdr_ratio != 1.0;
     mDisplaySceneInfo.displayScene.lhbm_on = getBrightnessState().local_hbm;
+    mDisplaySceneInfo.displayScene.hdr_full_screen = getBrightnessState().hdr_full_screen;
     mDisplaySceneInfo.displayScene.dbv = moduleDisplayInterface->getDbv();
 
     if (hwcCheckDebugMessages(eDebugColorManagement))
         mDisplaySceneInfo.printDisplayScene();
 
     if ((ret = mDisplayColorInterface->Update(DisplayType::DISPLAY_PRIMARY,
+                                              mDisplaySceneInfo.displayScene)) != 0) {
+        DISPLAY_LOGE("Display Scene update error (%d)", ret);
+        return ret;
+    }
+
+    return ret;
+}
+
+int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
+{
+    ExynosDisplayDrmInterfaceModule *moduleDisplayInterface =
+        (ExynosDisplayDrmInterfaceModule*)(mDisplayInterface.get());
+    auto refresh_rate = moduleDisplayInterface->getDesiredRefreshRate();
+    if (refresh_rate > 0) {
+        mDisplaySceneInfo.displayScene.refresh_rate = refresh_rate;
+    }
+
+    int ret = OK;
+    if ((ret = mDisplayColorInterface->UpdatePresent(DisplayType::DISPLAY_PRIMARY,
                                               mDisplaySceneInfo.displayScene)) != 0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
         return ret;

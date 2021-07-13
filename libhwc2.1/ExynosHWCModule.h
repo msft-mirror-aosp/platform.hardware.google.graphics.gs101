@@ -32,6 +32,7 @@
 #define DP_CABLE_STATE_NAME "/sys/devices/platform/%s/extcon/extcon0/cable.0/state"
 #define BRIGHTNESS_NODE_BASE    "/sys/class/backlight/panel0-backlight/brightness"
 #define MAX_BRIGHTNESS_NODE_BASE    "/sys/class/backlight/panel0-backlight/max_brightness"
+#define EARLY_WAKUP_NODE_BASE "/sys/devices/platform/1c300000.drmdecon/early_wakeup"
 
 #define IDMA(x) static_cast<decon_idma_type>(x)
 
