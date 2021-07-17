@@ -24,10 +24,6 @@ class ExynosResourceManagerModule : public ExynosResourceManager {
     public:
         ExynosResourceManagerModule(ExynosDevice* device);
         ~ExynosResourceManagerModule();
-
-    protected:
-        void setFrameRateForPerformance(ExynosMPP &mpp,
-                                        AcrylicPerformanceRequestFrame *frame) override;
 };
 
 }  // namespace gs101

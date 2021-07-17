@@ -27,9 +27,3 @@ ExynosResourceManagerModule::ExynosResourceManagerModule(ExynosDevice* device)
 ExynosResourceManagerModule::~ExynosResourceManagerModule()
 {
 }
-
-void ExynosResourceManagerModule::setFrameRateForPerformance(
-        ExynosMPP &mpp, AcrylicPerformanceRequestFrame *frame) {
-    int frame_rate = static_cast<int>(1e9f / mpp.mAssignedDisplay->mVsyncPeriod);
-    frame->setFrameRate(frame_rate);
-}

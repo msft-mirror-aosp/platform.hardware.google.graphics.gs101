@@ -38,6 +38,8 @@
 
 #define IDMA(x) static_cast<decon_idma_type>(x)
 
+#define MPP_G2D_CAPACITY    3.5
+
 enum {
     HWC_DISPLAY_NONE_BIT = 0
 };
