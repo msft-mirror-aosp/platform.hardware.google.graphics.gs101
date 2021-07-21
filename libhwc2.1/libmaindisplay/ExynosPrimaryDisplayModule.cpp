@@ -397,8 +397,11 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerDataMappingInfo(
                 layer, index);
         return -EINVAL;
     }
-    uint32_t oldPlaneId = prev_layerDataMappingInfo.count(layer) != 0 ?
-                  prev_layerDataMappingInfo[layer].planeId : UINT_MAX;
+    // if assigned displaycolor dppIdx changes, do not reuse it (force plane color update).
+    uint32_t oldPlaneId = prev_layerDataMappingInfo.count(layer) != 0 &&
+                    prev_layerDataMappingInfo[layer].dppIdx != index
+            ? prev_layerDataMappingInfo[layer].planeId
+            : UINT_MAX;
     layerDataMappingInfo.insert(std::make_pair(layer, LayerMappingInfo{ index, oldPlaneId }));
 
     return NO_ERROR;
