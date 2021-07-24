@@ -266,7 +266,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         int32_t setAtcEnable(bool enable);
         void checkAtcAnimation();
         bool isInAtcAnimation() {
-            if (mAtcStStepLeft > 0)
+            if (mAtcStStepCount > 0)
                 return true;
             else
                 return false;
@@ -282,7 +282,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         CtrlValue<uint32_t> mAtcStrength;
         CtrlValue<uint32_t> mAtcEnable;
         std::unordered_map<std::string, CtrlValue<int32_t>> mAtcSubSetting;
-        uint32_t mAtcStStepLeft = 0;
+        uint32_t mAtcStStepCount = 0;
         uint32_t mAtcStTarget = 0;
         uint32_t mAtcStUpStep;
         uint32_t mAtcStDownStep;

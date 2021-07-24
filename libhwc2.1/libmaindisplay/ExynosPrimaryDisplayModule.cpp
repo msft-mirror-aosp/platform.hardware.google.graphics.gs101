@@ -984,30 +984,27 @@ int32_t ExynosPrimaryDisplayModule::setAtcStDimming(uint32_t value) {
         uint32_t step = mAtcStTarget > strength ? mAtcStUpStep : mAtcStDownStep;
 
         int diff = value - strength;
-        uint32_t steps = std::abs(diff) / step;
-        int remainder = std::abs(diff) % step;
-        if (remainder > 0) steps = steps + 1;
-        mAtcStStepLeft = steps;
-        ALOGI("setup atc st dimming=%d, steps=%d, step=%d", value, steps, step);
+        uint32_t count = (std::abs(diff) + step - 1) / step;
+        mAtcStStepCount = count;
+        ALOGI("setup atc st dimming=%d, count=%d, step=%d", value, count, step);
     }
 
-    if (mAtcStStepLeft == 0 && !mAtcStrength.is_dirty()) return NO_ERROR;
+    if (mAtcStStepCount == 0 && !mAtcStrength.is_dirty()) return NO_ERROR;
 
-    if (strength < mAtcStTarget) {
+    if ((strength + mAtcStUpStep) < mAtcStTarget) {
         strength = strength + mAtcStUpStep;
-        if (strength > mAtcStTarget) strength = mAtcStTarget;
-    } else if (strength > mAtcStTarget) {
+    } else if (strength > (mAtcStTarget + mAtcStDownStep)) {
         strength = strength - mAtcStDownStep;
-        if (strength < mAtcStTarget) strength = mAtcStTarget;
-    } else
+    } else {
         strength = mAtcStTarget;
+    }
 
     if (setAtcStrength(strength) != NO_ERROR) {
         ALOGE("Failed to set atc st");
         return -EPERM;
     }
 
-    if (mAtcStStepLeft > 0) mAtcStStepLeft--;
+    if (mAtcStStepCount > 0) mAtcStStepCount--;
     return NO_ERROR;
 }
 
@@ -1028,7 +1025,7 @@ void ExynosPrimaryDisplayModule::checkAtcAnimation() {
         return;
     }
 
-    if (mPendingAtcOff && mAtcStStepLeft == 0) {
+    if (mPendingAtcOff && mAtcStStepCount == 0) {
         if (setAtcEnable(false) != NO_ERROR) {
             ALOGE("Failed to set atc enable to off");
             return;
