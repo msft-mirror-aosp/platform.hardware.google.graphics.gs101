@@ -917,6 +917,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
 void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     if (!mAtcInit) return;
     std::string modeStr;
+    bool enhanced_hbm = false;
     switch (state) {
         case LbeState::OFF:
             mCurrentLux = 0;
@@ -926,6 +927,7 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
             break;
         case LbeState::HIGH_BRIGHTNESS:
             modeStr = kAtcModeHbmStr;
+            enhanced_hbm = true;
             break;
         case LbeState::POWER_SAVE:
             modeStr = kAtcModePowerSaveStr;
@@ -936,6 +938,9 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     }
 
     if (setAtcMode(modeStr) != NO_ERROR) return;
+
+    requestEnhancedHbm(enhanced_hbm);
+    mDisplayInterface->updateBrightness(false);
 
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
