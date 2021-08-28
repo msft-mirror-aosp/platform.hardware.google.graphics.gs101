@@ -53,6 +53,10 @@ int32_t ExynosMPPModule::setColorConversionInfo()
     ExynosPrimaryDisplayModule* primaryDisplay =
         (ExynosPrimaryDisplayModule*)mAssignedDisplay;
 
+    if (!primaryDisplay->hasDisplayColor()) {
+        return NO_ERROR;
+    }
+
     for (size_t i = 0; i < mAssignedSources.size(); i++) {
         auto mppSource = mAssignedSources[i];
         ExynosLayer* layer = (ExynosLayer*)mppSource;

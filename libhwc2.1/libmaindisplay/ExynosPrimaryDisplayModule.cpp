@@ -57,7 +57,11 @@ ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDev
 
 int ExynosPrimaryDisplayModule::initDisplayColor() {
     mDisplayColorInterface = mDisplayColorLoader.GetDisplayColorGS101(1);
-    return mDisplayColorInterface == nullptr ? -EINVAL : NO_ERROR;
+    if (mDisplayColorInterface == nullptr) {
+        ALOGW("%s failed to load displaycolor", __func__);
+    }
+
+    return NO_ERROR;
 }
 
 ExynosPrimaryDisplayModule::~ExynosPrimaryDisplayModule () {
@@ -129,6 +133,7 @@ int32_t ExynosPrimaryDisplayModule::getColorModes(
         uint32_t* outNumModes, int32_t* outModes)
 {
     const ColorModesMap colorModeMap =
+        mDisplayColorInterface == nullptr ? ColorModesMap() :
         mDisplayColorInterface->ColorModesAndRenderIntents(DisplayType::DISPLAY_PRIMARY);
     ALOGD("%s: size(%zu)", __func__, colorModeMap.size());
     if (outModes == nullptr) {
@@ -156,6 +161,7 @@ int32_t ExynosPrimaryDisplayModule::setColorMode(int32_t mode)
 {
     ALOGD("%s: mode(%d)", __func__, mode);
     const ColorModesMap colorModeMap =
+        mDisplayColorInterface == nullptr ? ColorModesMap() :
         mDisplayColorInterface->ColorModesAndRenderIntents(DisplayType::DISPLAY_PRIMARY);
     hwc::ColorMode colorMode =
         static_cast<hwc::ColorMode>(mode);
@@ -177,6 +183,7 @@ int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
         uint32_t* outNumIntents, int32_t* outIntents)
 {
     const ColorModesMap colorModeMap =
+        mDisplayColorInterface == nullptr ? ColorModesMap() :
         mDisplayColorInterface->ColorModesAndRenderIntents(DisplayType::DISPLAY_PRIMARY);
     ALOGD("%s, size(%zu)", __func__, colorModeMap.size());
     hwc::ColorMode colorMode =
@@ -212,6 +219,7 @@ int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
 {
     ALOGD("%s: mode(%d), intent(%d)", __func__, mode, intent);
     const ColorModesMap colorModeMap =
+        mDisplayColorInterface == nullptr ? ColorModesMap() :
         mDisplayColorInterface->ColorModesAndRenderIntents(DisplayType::DISPLAY_PRIMARY);
     hwc::ColorMode colorMode =
         static_cast<hwc::ColorMode>(mode);
@@ -323,6 +331,10 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 
 bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
 {
+    if (mDisplayColorInterface == nullptr) {
+        return false;
+    }
+
     if (mDisplaySceneInfo.layerDataMappingInfo.count(layer) == 0)
         return false;
 
@@ -361,9 +373,11 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
     if (!mDisplaySceneInfo.displaySettingDelivered)
         forceDisplayColorSetting = true;
 
-    moduleDisplayInterface->setColorSettingChanged(
+    if (mDisplayColorInterface != nullptr) {
+        moduleDisplayInterface->setColorSettingChanged(
             mDisplaySceneInfo.needDisplayColorSetting(),
             forceDisplayColorSetting);
+    }
 
     ret = ExynosDisplay::deliverWinConfigData();
 
@@ -617,6 +631,10 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
 int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 {
     int ret = 0;
+    if (mDisplayColorInterface == nullptr) {
+        return ret;
+    }
+
     /* clear flag and layer mapping info before setting */
     mDisplaySceneInfo.reset();
 
@@ -648,6 +666,11 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 
 int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 {
+    int ret = NO_ERROR;
+    if (mDisplayColorInterface == nullptr) {
+        return ret;
+    }
+
     ExynosDisplayDrmInterfaceModule *moduleDisplayInterface =
         (ExynosDisplayDrmInterfaceModule*)(mDisplayInterface.get());
     auto refresh_rate = moduleDisplayInterface->getDesiredRefreshRate();
@@ -655,7 +678,6 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
         mDisplaySceneInfo.displayScene.refresh_rate = refresh_rate;
     }
 
-    int ret = OK;
     if ((ret = mDisplayColorInterface->UpdatePresent(DisplayType::DISPLAY_PRIMARY,
                                               mDisplaySceneInfo.displayScene)) != 0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
@@ -666,6 +688,10 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 }
 
 int32_t ExynosPrimaryDisplayModule::getColorAdjustedDbv(uint32_t &dbv_adj) {
+    if (mDisplayColorInterface == nullptr) {
+        return NO_ERROR;
+    }
+
     dbv_adj = mDisplayColorInterface->GetPipelineData(DisplayType::DISPLAY_PRIMARY)
                            ->Panel()
                            .GetAdjustedBrightnessLevel();

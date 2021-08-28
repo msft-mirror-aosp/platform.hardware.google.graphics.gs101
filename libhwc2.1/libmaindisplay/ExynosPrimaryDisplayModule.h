@@ -216,6 +216,8 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         };
 
         int initDisplayColor();
+        bool hasDisplayColor() { return mDisplayColorInterface != nullptr; }
+
         /* Call getDppForLayer() only if hasDppForLayer() is true */
         bool hasDppForLayer(ExynosMPPSource* layer);
         const IDisplayColorGS101::IDpp& getDppForLayer(ExynosMPPSource* layer);
