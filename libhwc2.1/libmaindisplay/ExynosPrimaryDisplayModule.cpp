@@ -55,8 +55,9 @@ ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDev
 #endif
 }
 
-int ExynosPrimaryDisplayModule::initDisplayColor() {
-    mDisplayColorInterface = mDisplayColorLoader.GetDisplayColorGS101(1);
+int ExynosPrimaryDisplayModule::initDisplayColor(
+        const std::vector<displaycolor::DisplayInfo>& display_info) {
+    mDisplayColorInterface = mDisplayColorLoader.GetDisplayColorGS101(display_info);
     if (mDisplayColorInterface == nullptr) {
         ALOGW("%s failed to load displaycolor", __func__);
     }

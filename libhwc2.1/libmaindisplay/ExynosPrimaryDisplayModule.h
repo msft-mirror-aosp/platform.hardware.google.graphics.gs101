@@ -215,7 +215,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 void printLayerColorData(const LayerColorData& layerData);
         };
 
-        int initDisplayColor();
+        int initDisplayColor(const std::vector<displaycolor::DisplayInfo>& display_info);
         bool hasDisplayColor() { return mDisplayColorInterface != nullptr; }
 
         /* Call getDppForLayer() only if hasDppForLayer() is true */

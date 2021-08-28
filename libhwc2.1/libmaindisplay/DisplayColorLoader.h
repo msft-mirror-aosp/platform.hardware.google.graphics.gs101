@@ -21,6 +21,7 @@
 #include <gs101/displaycolor/displaycolor_gs101.h>
 #include <log/log.h>
 #include <string>
+#include <vector>
 
 namespace gs101 {
 
@@ -75,9 +76,10 @@ class DisplayColorLoader {
           }
       }
 
-      displaycolor::IDisplayColorGS101* GetDisplayColorGS101(size_t display_num) {
+      displaycolor::IDisplayColorGS101 *GetDisplayColorGS101(
+              const std::vector<displaycolor::DisplayInfo> &display_info) {
           if (get_display_color_gs101 != nullptr) {
-              return get_display_color_gs101(display_num);
+              return get_display_color_gs101(display_info);
           }
 
           return nullptr;
@@ -91,7 +93,8 @@ class DisplayColorLoader {
 
     private:
       void *lib_handle;
-      displaycolor::IDisplayColorGS101* (*get_display_color_gs101)(size_t);
+      displaycolor::IDisplayColorGS101 *(*get_display_color_gs101)(
+              const std::vector<displaycolor::DisplayInfo> &);
 };
 
 }  // namespace gs101

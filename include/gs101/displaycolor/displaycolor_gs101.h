@@ -293,8 +293,7 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
 extern "C" {
 
 /// Get the GS101 instance.
-IDisplayColorGS101* GetDisplayColorGS101(size_t display_num);
-
+IDisplayColorGS101* GetDisplayColorGS101(const std::vector<DisplayInfo> &display_info);
 }
 
 }  // namespace displaycolor

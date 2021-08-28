@@ -82,7 +82,22 @@ int32_t ExynosDisplayDrmInterfaceModule::initDrmDevice(DrmDevice *drmDevice)
     ExynosPrimaryDisplayModule* display =
         (ExynosPrimaryDisplayModule*)mExynosDisplay;
 
-    ret = display->initDisplayColor();
+    std::vector<displaycolor::DisplayInfo> display_info;
+    displaycolor::DisplayInfo primary_display;
+    auto &tb = primary_display.brightness_table;
+
+    tb.nbm_nits_min = mBrightnessTable[BrightnessRange::NORMAL].mNitsStart;
+    tb.nbm_nits_max = mBrightnessTable[BrightnessRange::NORMAL].mNitsEnd;
+    tb.nbm_dbv_min = mBrightnessTable[BrightnessRange::NORMAL].mBklStart;
+    tb.nbm_dbv_max = mBrightnessTable[BrightnessRange::NORMAL].mBklEnd;
+
+    tb.hbm_nits_min = mBrightnessTable[BrightnessRange::HBM].mNitsStart;
+    tb.hbm_nits_max = mBrightnessTable[BrightnessRange::HBM].mNitsEnd;
+    tb.hbm_dbv_min = mBrightnessTable[BrightnessRange::HBM].mBklStart;
+    tb.hbm_dbv_max = mBrightnessTable[BrightnessRange::HBM].mBklEnd;
+
+    display_info.push_back(primary_display);
+    ret = display->initDisplayColor(display_info);
     if (ret != NO_ERROR) {
         HWC_LOGE(mExynosDisplay, "Failed to load displaycolor %d", ret);
         return ret;
