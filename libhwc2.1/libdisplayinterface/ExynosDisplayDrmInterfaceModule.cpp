@@ -508,7 +508,8 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorSetting(
     int ret = NO_ERROR;
     const IDisplayColorGS101::IDqe &dqe = display->getDqe();
 
-    if ((ret = setDisplayColorBlob(mDrmCrtc->cgc_lut_property(),
+    if ((mDrmCrtc->cgc_lut_property().id() != 0) &&
+        (ret = setDisplayColorBlob(mDrmCrtc->cgc_lut_property(),
                 static_cast<uint32_t>(DqeBlobs::CGC),
                 dqe.Cgc(), dqe, drmReq) != NO_ERROR)) {
         HWC_LOGE(mExynosDisplay, "%s: set Cgc blob fail", __func__);

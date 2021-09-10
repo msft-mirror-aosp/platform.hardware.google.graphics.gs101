@@ -66,7 +66,7 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                 uint32_t &blobId);
         int32_t createOetfBlobFromIDpp(const IDisplayColorGS101::IDpp &dpp,
                 uint32_t &blobId);
-    private:
+    protected:
         class SaveBlob {
             public:
                 ~SaveBlob();
