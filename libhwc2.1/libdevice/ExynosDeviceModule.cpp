@@ -16,15 +16,35 @@
 
 #include "ExynosDeviceModule.h"
 
+#include "ExynosDisplayDrmInterfaceModule.h"
+
 extern struct exynos_hwc_control exynosHWCControl;
 
 using namespace gs101;
 
-ExynosDeviceModule::ExynosDeviceModule()
-    : ExynosDevice()
-{
+ExynosDeviceModule::ExynosDeviceModule() : ExynosDevice(), mDisplayColorLoader(DISPLAY_COLOR_LIB) {
     exynosHWCControl.skipStaticLayers = false;
+
+    std::vector<displaycolor::DisplayInfo> display_info;
+    for (uint32_t i = 0; i < mDisplays.size(); i++) {
+        ExynosDisplay* display = mDisplays[i];
+        ExynosDisplayDrmInterfaceModule* moduleDisplayInterface =
+                (ExynosDisplayDrmInterfaceModule*)(display->mDisplayInterface.get());
+
+        moduleDisplayInterface->getDisplayInfo(display_info);
+    }
+    initDisplayColor(display_info);
 }
 
 ExynosDeviceModule::~ExynosDeviceModule() {
+}
+
+int ExynosDeviceModule::initDisplayColor(
+        const std::vector<displaycolor::DisplayInfo>& display_info) {
+    mDisplayColorInterface = mDisplayColorLoader.GetDisplayColorGS101(display_info);
+    if (mDisplayColorInterface == nullptr) {
+        ALOGW("%s failed to load displaycolor", __func__);
+    }
+
+    return NO_ERROR;
 }

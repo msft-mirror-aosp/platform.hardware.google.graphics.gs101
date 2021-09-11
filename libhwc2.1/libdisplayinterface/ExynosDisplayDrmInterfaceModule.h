@@ -66,6 +66,9 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                 uint32_t &blobId);
         int32_t createOetfBlobFromIDpp(const IDisplayColorGS101::IDpp &dpp,
                 uint32_t &blobId);
+
+        void getDisplayInfo(std::vector<displaycolor::DisplayInfo> &display_info);
+
     protected:
         class SaveBlob {
             public:
