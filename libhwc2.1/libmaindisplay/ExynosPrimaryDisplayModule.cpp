@@ -22,6 +22,7 @@
 
 #include <cmath>
 
+#include "BrightnessController.h"
 #include "ExynosDisplayDrmInterfaceModule.h"
 #include "ExynosHWCDebug.h"
 
@@ -270,6 +271,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
     int32_t ret = 0;
     uint32_t layerNum = 0;
 
+    float dimSdrRatio = mBrightnessController->getSdrDimRatioForInstantHbm();
     for (uint32_t i = 0; i < mLayers.size(); i++)
     {
         ExynosLayer* layer = mLayers[i];
@@ -288,8 +290,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
             return ret;
         }
 
-        if ((ret = mDisplaySceneInfo.setLayerColorData(layerColorData, layer,
-                                                       getBrightnessState().dim_sdr_ratio))
+        if ((ret = mDisplaySceneInfo.setLayerColorData(layerColorData, layer, dimSdrRatio))
                 != NO_ERROR) {
             DISPLAY_LOGE("%s: layer[%d] setLayerColorData fail, layerNum(%d)",
                     __func__, i, layerNum);
@@ -311,8 +312,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
         }
 
         if ((ret = mDisplaySceneInfo.setClientCompositionColorData(
-                 mClientCompositionInfo, layerColorData,
-                 getBrightnessState().dim_sdr_ratio)) != NO_ERROR) {
+                 mClientCompositionInfo, layerColorData, dimSdrRatio)) != NO_ERROR) {
           DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
           return ret;
         }
@@ -647,16 +647,14 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
     if ((ret = setLayersColorData()) != NO_ERROR)
         return ret;
 
-    ExynosDisplayDrmInterfaceModule *moduleDisplayInterface =
-        (ExynosDisplayDrmInterfaceModule*)(mDisplayInterface.get());
-    mDisplaySceneInfo.displayScene.bm = moduleDisplayInterface->isHbmOn()
+    mDisplaySceneInfo.displayScene.bm = mBrightnessController->isGhbmOn()
             ? displaycolor::BrightnessMode::BM_HBM
             : displaycolor::BrightnessMode::BM_NOMINAL;
 
-    mDisplaySceneInfo.displayScene.force_hdr = getBrightnessState().dim_sdr_ratio != 1.0;
-    mDisplaySceneInfo.displayScene.lhbm_on = getBrightnessState().local_hbm;
-    mDisplaySceneInfo.displayScene.hdr_full_screen = getBrightnessState().hdr_full_screen;
-    mDisplaySceneInfo.displayScene.dbv = moduleDisplayInterface->getDbv();
+    mDisplaySceneInfo.displayScene.force_hdr = mBrightnessController->isDimSdr();
+    mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
+    mDisplaySceneInfo.displayScene.hdr_full_screen = mBrightnessController->isHdrFullScreen();
+    mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
 
     if (hwcCheckDebugMessages(eDebugColorManagement))
         mDisplaySceneInfo.printDisplayScene();
@@ -973,9 +971,7 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
 
     if (setAtcMode(modeStr) != NO_ERROR) return;
 
-    requestEnhancedHbm(enhanced_hbm);
-    mDisplayInterface->updateBrightness(false);
-
+    mBrightnessController->processEnhancedHbm(enhanced_hbm);
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
         mDevice->invalidate();

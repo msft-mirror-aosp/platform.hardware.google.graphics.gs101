@@ -145,7 +145,7 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
             BPC_8,
             BPC_10,
         };
-        DrmPropertyMap mBpcEnums;
+        DrmEnumParser::MapHal2DrmEnum mBpcEnums;
 };
 
 class ExynosPrimaryDisplayDrmInterfaceModule : public ExynosDisplayDrmInterfaceModule {

@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#include "BrightnessController.h"
 #include "ExynosDisplayDrmInterfaceModule.h"
 #include "ExynosPrimaryDisplayModule.h"
 #include <drm/samsung_drm.h>
+
+using BrightnessRange = BrightnessController::BrightnessRange;
 
 template <typename T, typename M>
 int32_t convertDqeMatrixDataToMatrix(T &colorMatrix, M &mat,
@@ -62,7 +65,7 @@ void ExynosDisplayDrmInterfaceModule::parseBpcEnums(const DrmProperty& property)
     };
 
     ALOGD("Init bpc enums");
-    parseEnums(property, bpcEnums, mBpcEnums);
+    DrmEnumParser::parseEnums(property, bpcEnums, mBpcEnums);
     for (auto &e : mBpcEnums) {
         ALOGD("bpc [bpc: %d, drm: %" PRId64 "]", e.first, e.second);
     }
@@ -535,8 +538,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorSetting(
             if (dqe.DqeControl().config->force_10bpc)
                 bpc = static_cast<uint32_t>(BPC_10);
         }
-        uint64_t bpcEnum = 0;
-        std::tie(bpcEnum, ret) = halToDrmEnum(bpc, mBpcEnums);
+        auto [bpcEnum, ret] = DrmEnumParser::halToDrmEnum(bpc, mBpcEnums);
         if (ret < 0) {
             HWC_LOGE(mExynosDisplay, "Fail to convert bpc(%d)", bpc);
         } else {
@@ -747,16 +749,17 @@ void ExynosDisplayDrmInterfaceModule::getDisplayInfo(
         std::vector<displaycolor::DisplayInfo> &display_info) {
     displaycolor::DisplayInfo primary_display;
     auto &tb = primary_display.brightness_table;
+    auto *brightnessTable = mExynosDisplay->mBrightnessController->getBrightnessTable();
 
-    tb.nbm_nits_min = mBrightnessTable[BrightnessRange::NORMAL].mNitsStart;
-    tb.nbm_nits_max = mBrightnessTable[BrightnessRange::NORMAL].mNitsEnd;
-    tb.nbm_dbv_min = mBrightnessTable[BrightnessRange::NORMAL].mBklStart;
-    tb.nbm_dbv_max = mBrightnessTable[BrightnessRange::NORMAL].mBklEnd;
+    tb.nbm_nits_min = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mNitsStart;
+    tb.nbm_nits_max = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mNitsEnd;
+    tb.nbm_dbv_min = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mBklStart;
+    tb.nbm_dbv_max = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mBklEnd;
 
-    tb.hbm_nits_min = mBrightnessTable[BrightnessRange::HBM].mNitsStart;
-    tb.hbm_nits_max = mBrightnessTable[BrightnessRange::HBM].mNitsEnd;
-    tb.hbm_dbv_min = mBrightnessTable[BrightnessRange::HBM].mBklStart;
-    tb.hbm_dbv_max = mBrightnessTable[BrightnessRange::HBM].mBklEnd;
+    tb.hbm_nits_min = brightnessTable[toUnderlying(BrightnessRange::HBM)].mNitsStart;
+    tb.hbm_nits_max = brightnessTable[toUnderlying(BrightnessRange::HBM)].mNitsEnd;
+    tb.hbm_dbv_min = brightnessTable[toUnderlying(BrightnessRange::HBM)].mBklStart;
+    tb.hbm_dbv_max = brightnessTable[toUnderlying(BrightnessRange::HBM)].mBklEnd;
 
     display_info.push_back(primary_display);
 }
