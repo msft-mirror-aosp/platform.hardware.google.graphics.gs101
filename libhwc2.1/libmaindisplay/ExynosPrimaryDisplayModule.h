@@ -119,6 +119,9 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
             IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
             return displayColorInterface->IsRrCompensationEnabled(display);
         }
+
+        virtual bool isColorCalibratedByDevice();
+
         virtual int32_t getColorAdjustedDbv(uint32_t &dbv_adj);
 
         virtual void initLbe();

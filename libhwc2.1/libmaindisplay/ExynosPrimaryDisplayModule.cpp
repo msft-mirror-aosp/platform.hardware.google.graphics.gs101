@@ -1093,3 +1093,9 @@ bool ExynosPrimaryDisplayModule::isDisplaySwitched(int32_t mode, int32_t prevMod
     return (device->getActiveDisplay() != mIndex) && (prevMode == HWC_POWER_MODE_OFF) &&
             (mode != HWC_POWER_MODE_OFF);
 }
+
+bool ExynosPrimaryDisplayModule::isColorCalibratedByDevice() {
+    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    return displayColorInterface->GetCalibrationInfo(display).factory_cal_loaded;
+};
