@@ -33,7 +33,7 @@
 #define BRIGHTNESS_SYSFS_NODE "/sys/class/backlight/panel%d-backlight/brightness"
 #define MAX_BRIGHTNESS_SYSFS_NODE "/sys/class/backlight/panel%d-backlight/max_brightness"
 
-#define EARLY_WAKUP_NODE_BASE "/sys/devices/platform/1c300000.drmdecon/early_wakeup"
+#define EARLY_WAKUP_NODE_0_BASE "/sys/devices/platform/1c300000.drmdecon/early_wakeup"
 
 #define IDMA(x) static_cast<decon_idma_type>(x)
 
