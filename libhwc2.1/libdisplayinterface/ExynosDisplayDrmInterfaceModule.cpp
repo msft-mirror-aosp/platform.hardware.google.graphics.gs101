@@ -761,7 +761,29 @@ void ExynosDisplayDrmInterfaceModule::getDisplayInfo(
     tb.hbm_dbv_min = brightnessTable[toUnderlying(BrightnessRange::HBM)].mBklStart;
     tb.hbm_dbv_max = brightnessTable[toUnderlying(BrightnessRange::HBM)].mBklEnd;
 
+    primary_display.panel_name = GetPanelName();
+    primary_display.panel_serial = GetPanelSerial();
+
     display_info.push_back(primary_display);
+}
+
+const std::string ExynosDisplayDrmInterfaceModule::GetPanelInfo(const std::string &sysfs_rel,
+                                                                char delim) {
+    ExynosPrimaryDisplayModule* display = (ExynosPrimaryDisplayModule*)mExynosDisplay;
+    const DisplayType type = display->getBuiltInDisplayType();
+    const std::string &sysfs = display->getPanelSysfsPath(type);
+
+    if (sysfs.empty()) {
+        return "";
+    }
+
+    std::string info;
+    if (readLineFromFile(sysfs + "/" + sysfs_rel, info, delim) != OK) {
+        ALOGE("failed reading %s/%s", sysfs.c_str(), sysfs_rel.c_str());
+        return "";
+    }
+
+    return info;
 }
 
 //////////////////////////////////////////////////// ExynosPrimaryDisplayDrmInterfaceModule //////////////////////////////////////////////////////////////////

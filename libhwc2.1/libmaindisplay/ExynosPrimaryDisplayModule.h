@@ -251,6 +251,9 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
             return displayColorInterface->GetPipelineData(display)->Dqe();
         };
 
+        // primary or secondary
+        DisplayType getBuiltInDisplayType() { return getDisplayTypeFromIndex(mIndex); }
+
     private:
         int32_t setLayersColorData();
         DisplaySceneInfo mDisplaySceneInfo;
