@@ -290,6 +290,14 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
             return ret;
         }
 
+        float layerDimRatio = layer->mPreprocessedInfo.sdrDimRatio;
+        if (dimSdrRatio < 1.0 && layerDimRatio < 1.0) {
+            // should have only one of them less than 1.0 for hwc2.4 or hwc3
+            ALOGW("%s instant hbm sdr dim %f, mixed compoistion layer dim %f", __func__,
+                  dimSdrRatio, layerDimRatio);
+        }
+
+        dimSdrRatio *= layerDimRatio;
         if ((ret = mDisplaySceneInfo.setLayerColorData(layerColorData, layer, dimSdrRatio))
                 != NO_ERROR) {
             DISPLAY_LOGE("%s: layer[%d] setLayerColorData fail, layerNum(%d)",
