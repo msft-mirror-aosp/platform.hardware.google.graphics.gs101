@@ -867,10 +867,17 @@ void ExynosPrimaryDisplayModule::initLbe() {
     }
 
     mAtcInit = true;
-    mAtcAmbientLight.set_dirty();
-    mAtcStrength.set_dirty();
-    for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++)
-        mAtcSubSetting[it->first.c_str()].set_dirty();
+    mAtcAmbientLight.node = String8::format(ATC_AMBIENT_LIGHT_FILE_NAME, mIndex);
+    mAtcAmbientLight.value.set_dirty();
+    mAtcStrength.node = String8::format(ATC_ST_FILE_NAME, mIndex);
+    mAtcStrength.value.set_dirty();
+    mAtcEnable.node = String8::format(ATC_ENABLE_FILE_NAME, mIndex);
+    mAtcEnable.value.set_dirty();
+
+    for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++) {
+        mAtcSubSetting[it->first.c_str()].node = String8::format(it->second.c_str(), mIndex);
+        mAtcSubSetting[it->first.c_str()].value.set_dirty();
+    }
 }
 
 uint32_t ExynosPrimaryDisplayModule::getAtcLuxMapIndex(std::vector<atc_lux_map> map, uint32_t lux) {
@@ -886,20 +893,20 @@ uint32_t ExynosPrimaryDisplayModule::getAtcLuxMapIndex(std::vector<atc_lux_map> 
 }
 
 int32_t ExynosPrimaryDisplayModule::setAtcStrength(uint32_t strength) {
-    mAtcStrength.store(strength);
-    if (mAtcStrength.is_dirty()) {
-        if (writeIntToFile(ATC_ST_FILE_NAME, mAtcStrength.get()) != NO_ERROR) return -EPERM;
-        mAtcStrength.clear_dirty();
+    mAtcStrength.value.store(strength);
+    if (mAtcStrength.value.is_dirty()) {
+        if (writeIntToFile(mAtcStrength.node, mAtcStrength.value.get()) != NO_ERROR) return -EPERM;
+        mAtcStrength.value.clear_dirty();
     }
     return NO_ERROR;
 }
 
 int32_t ExynosPrimaryDisplayModule::setAtcAmbientLight(uint32_t ambient_light) {
-    mAtcAmbientLight.store(ambient_light);
-    if (mAtcAmbientLight.is_dirty()) {
-        if (writeIntToFile(ATC_AMBIENT_LIGHT_FILE_NAME, mAtcAmbientLight.get()) != NO_ERROR)
+    mAtcAmbientLight.value.store(ambient_light);
+    if (mAtcAmbientLight.value.is_dirty()) {
+        if (writeIntToFile(mAtcAmbientLight.node, mAtcAmbientLight.value.get()) != NO_ERROR)
             return -EPERM;
-        mAtcAmbientLight.clear_dirty();
+        mAtcAmbientLight.value.clear_dirty();
     }
 
     return NO_ERROR;
@@ -914,12 +921,12 @@ int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
     if (enable) {
         atc_mode mode = mode_data->second;
         for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++) {
-            mAtcSubSetting[it->first.c_str()].store(mode.sub_setting[it->first.c_str()]);
-            if (mAtcSubSetting[it->first.c_str()].is_dirty()) {
-                if (writeIntToFile(it->second.c_str(), mAtcSubSetting[it->first.c_str()].get()) !=
-                    NO_ERROR)
+            mAtcSubSetting[it->first.c_str()].value.store(mode.sub_setting[it->first.c_str()]);
+            if (mAtcSubSetting[it->first.c_str()].value.is_dirty()) {
+                if (writeIntToFile(mAtcSubSetting[it->first.c_str()].node,
+                                   mAtcSubSetting[it->first.c_str()].value.get()) != NO_ERROR)
                     return -EPERM;
-                mAtcSubSetting[it->first.c_str()].clear_dirty();
+                mAtcSubSetting[it->first.c_str()].value.clear_dirty();
             }
         }
         mAtcStUpStep = mode.st_up_step;
@@ -1021,7 +1028,7 @@ LbeState ExynosPrimaryDisplayModule::getLbeState() {
 
 int32_t ExynosPrimaryDisplayModule::setAtcStDimming(uint32_t value) {
     Mutex::Autolock lock(mAtcStMutex);
-    int32_t strength = mAtcStrength.get();
+    int32_t strength = mAtcStrength.value.get();
     if (mAtcStTarget != value) {
         mAtcStTarget = value;
         uint32_t step = mAtcStTarget > strength ? mAtcStUpStep : mAtcStDownStep;
@@ -1032,7 +1039,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcStDimming(uint32_t value) {
         ALOGI("setup atc st dimming=%d, count=%d, step=%d", value, count, step);
     }
 
-    if (mAtcStStepCount == 0 && !mAtcStrength.is_dirty()) return NO_ERROR;
+    if (mAtcStStepCount == 0 && !mAtcStrength.value.is_dirty()) return NO_ERROR;
 
     if ((strength + mAtcStUpStep) < mAtcStTarget) {
         strength = strength + mAtcStUpStep;
@@ -1052,10 +1059,10 @@ int32_t ExynosPrimaryDisplayModule::setAtcStDimming(uint32_t value) {
 }
 
 int32_t ExynosPrimaryDisplayModule::setAtcEnable(bool enable) {
-    mAtcEnable.store(enable);
-    if (mAtcEnable.is_dirty()) {
-        if (writeIntToFile(ATC_ENABLE_FILE_NAME, enable) != NO_ERROR) return -EPERM;
-        mAtcEnable.clear_dirty();
+    mAtcEnable.value.store(enable);
+    if (mAtcEnable.value.is_dirty()) {
+        if (writeIntToFile(mAtcEnable.node, enable) != NO_ERROR) return -EPERM;
+        mAtcEnable.value.clear_dirty();
     }
     return NO_ERROR;
 }
