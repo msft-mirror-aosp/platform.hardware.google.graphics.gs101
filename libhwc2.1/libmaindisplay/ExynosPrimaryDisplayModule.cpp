@@ -297,9 +297,8 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
                   dimSdrRatio, layerDimRatio);
         }
 
-        dimSdrRatio *= layerDimRatio;
-        if ((ret = mDisplaySceneInfo.setLayerColorData(layerColorData, layer, dimSdrRatio))
-                != NO_ERROR) {
+        if ((ret = mDisplaySceneInfo.setLayerColorData(layerColorData, layer,
+                                                       layerDimRatio * dimSdrRatio)) != NO_ERROR) {
             DISPLAY_LOGE("%s: layer[%d] setLayerColorData fail, layerNum(%d)",
                     __func__, i, layerNum);
             return ret;
