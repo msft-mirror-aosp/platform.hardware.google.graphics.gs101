@@ -560,6 +560,14 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setClientCompositionColorD
             0.0, 0.0, 0.0, 1.0
         };
         setLayerColorTransform(layerData, scaleMatrix);
+    } else {
+        static std::array<float, TRANSFORM_MAT_SIZE> defaultMatrix {
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        };
+        setLayerColorTransform(layerData, defaultMatrix);
     }
 
     return NO_ERROR;
