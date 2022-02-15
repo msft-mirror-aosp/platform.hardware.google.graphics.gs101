@@ -266,6 +266,28 @@ int32_t ExynosPrimaryDisplayModule::setColorTransform(
 
 }
 
+int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
+        hwc_client_target_property_t* outClientTargetProperty) {
+    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    if (displayColorInterface == nullptr) {
+        ALOGI("%s dc interface not created", __func__);
+        return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
+    }
+
+    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    hwc::PixelFormat pixelFormat;
+    hwc::Dataspace dataspace;
+    if (!displayColorInterface->GetBlendingProperty(display, pixelFormat, dataspace)) {
+        outClientTargetProperty->pixelFormat = toUnderlying(pixelFormat);
+        outClientTargetProperty->dataspace = toUnderlying(dataspace);
+
+        return HWC2_ERROR_NONE;
+    }
+
+    ALOGW("%s failed to get property of blending stage", __func__);
+    return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
+}
+
 int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 {
     int32_t ret = 0;
@@ -668,7 +690,7 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 
     mDisplaySceneInfo.displayScene.force_hdr = mBrightnessController->isDimSdr();
     mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
-    mDisplaySceneInfo.displayScene.hdr_full_screen = mBrightnessController->isHdrFullScreen();
+    mDisplaySceneInfo.displayScene.hdr_layer_state = mBrightnessController->getHdrLayerState();
     mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
 
     if (hwcCheckDebugMessages(eDebugColorManagement))
