@@ -146,6 +146,11 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
             BPC_10,
         };
         DrmEnumParser::MapHal2DrmEnum mBpcEnums;
+
+    private:
+        const std::string GetPanelInfo(const std::string &sysfs_rel, char delim);
+        const std::string GetPanelSerial() { return GetPanelInfo("serial_number", '\n'); }
+        const std::string GetPanelName() { return GetPanelInfo("panel_name", '\n'); }
 };
 
 class ExynosPrimaryDisplayDrmInterfaceModule : public ExynosDisplayDrmInterfaceModule {
