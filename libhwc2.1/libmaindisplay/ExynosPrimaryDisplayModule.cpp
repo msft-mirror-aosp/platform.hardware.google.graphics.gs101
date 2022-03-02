@@ -267,7 +267,8 @@ int32_t ExynosPrimaryDisplayModule::setColorTransform(
 }
 
 int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
-        hwc_client_target_property_t* outClientTargetProperty) {
+        hwc_client_target_property_t* outClientTargetProperty,
+        HwcDimmingStage *outDimmingStage) {
     IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         ALOGI("%s dc interface not created", __func__);
@@ -277,9 +278,15 @@ int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     hwc::PixelFormat pixelFormat;
     hwc::Dataspace dataspace;
-    if (!displayColorInterface->GetBlendingProperty(display, pixelFormat, dataspace)) {
+    bool dimming_linear;
+    if (!displayColorInterface->GetBlendingProperty(display, pixelFormat, dataspace,
+                                                    dimming_linear)) {
         outClientTargetProperty->pixelFormat = toUnderlying(pixelFormat);
         outClientTargetProperty->dataspace = toUnderlying(dataspace);
+        if (outDimmingStage != nullptr)
+            *outDimmingStage = dimming_linear
+                              ? HwcDimmingStage::DIMMING_LINEAR
+                              : HwcDimmingStage::DIMMING_OETF;
 
         return HWC2_ERROR_NONE;
     }
@@ -293,6 +300,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
     int32_t ret = 0;
     uint32_t layerNum = 0;
 
+    // TODO: b/212616164 remove dimSdrRatio
     float dimSdrRatio = mBrightnessController->getSdrDimRatioForInstantHbm();
     for (uint32_t i = 0; i < mLayers.size(); i++)
     {
@@ -312,15 +320,9 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
             return ret;
         }
 
-        float layerDimRatio = layer->mPreprocessedInfo.sdrDimRatio;
-        if (dimSdrRatio < 1.0 && layerDimRatio < 1.0) {
-            // should have only one of them less than 1.0 for hwc2.4 or hwc3
-            ALOGW("%s instant hbm sdr dim %f, mixed compoistion layer dim %f", __func__,
-                  dimSdrRatio, layerDimRatio);
-        }
 
         if ((ret = mDisplaySceneInfo.setLayerColorData(layerColorData, layer,
-                                                       layerDimRatio * dimSdrRatio)) != NO_ERROR) {
+                                                       dimSdrRatio)) != NO_ERROR) {
             DISPLAY_LOGE("%s: layer[%d] setLayerColorData fail, layerNum(%d)",
                     __func__, i, layerNum);
             return ret;
@@ -569,6 +571,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setClientCompositionColorD
         const ExynosCompositionInfo &clientCompositionInfo, LayerColorData& layerData,
         float dimSdrRatio)
 {
+    layerData.dim_ratio = 1.0f;
     setLayerDataspace(layerData,
                       static_cast<hwc::Dataspace>(clientCompositionInfo.mDataSpace));
     disableLayerHdrStaticMetadata(layerData);
@@ -598,6 +601,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setClientCompositionColorD
 int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
         LayerColorData& layerData, ExynosLayer* layer, float dimSdrRatio)
 {
+    layerData.dim_ratio = layer->mPreprocessedInfo.sdrDimRatio;
     setLayerDataspace(layerData,
             static_cast<hwc::Dataspace>(layer->mDataSpace));
     if (layer->mIsHdrLayer) {
