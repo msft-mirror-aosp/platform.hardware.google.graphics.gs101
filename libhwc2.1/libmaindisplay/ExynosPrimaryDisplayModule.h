@@ -112,7 +112,8 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 int32_t intent);
         virtual int32_t setColorTransform(const float* matrix, int32_t hint);
         virtual int32_t getClientTargetProperty(
-                hwc_client_target_property_t* outClientTargetProperty) override;
+                hwc_client_target_property_t* outClientTargetProperty,
+                HwcDimmingStage *outDimmingStage = nullptr) override;
         virtual int deliverWinConfigData();
         virtual int32_t updateColorConversionInfo();
         virtual int32_t updatePresentColorConversionInfo();
