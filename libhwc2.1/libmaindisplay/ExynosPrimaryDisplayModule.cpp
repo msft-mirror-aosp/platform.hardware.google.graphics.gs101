@@ -214,7 +214,6 @@ int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
 int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
         int32_t intent)
 {
-    ALOGD("%s: mode(%d), intent(%d)", __func__, mode, intent);
     IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
@@ -242,8 +241,10 @@ int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
     mDisplaySceneInfo.setColorMode(colorMode);
     mDisplaySceneInfo.setRenderIntent(renderIntent);
 
-    if (mColorMode != mode)
+    if (mColorMode != mode) {
+        ALOGD("%s: mode(%d), intent(%d)", __func__, mode, intent);
         setGeometryChanged(GEOMETRY_DISPLAY_COLOR_MODE_CHANGED);
+    }
     mColorMode = (android_color_mode_t)mode;
 
     return HWC2_ERROR_NONE;
