@@ -605,11 +605,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
     layerData.dim_ratio = layer->mPreprocessedInfo.sdrDimRatio;
     setLayerDataspace(layerData,
             static_cast<hwc::Dataspace>(layer->mDataSpace));
-    if (layer->mIsHdrLayer) {
-        if (layer->getMetaParcel() == nullptr) {
-            HDEBUGLOGE("%s:: meta data parcel is null", __func__);
-            return -EINVAL;
-        }
+    if (layer->mIsHdrLayer && layer->getMetaParcel() != nullptr) {
         if (layer->getMetaParcel()->eType & VIDEO_INFO_TYPE_HDR_STATIC)
             setLayerHdrStaticMetadata(layerData, layer->getMetaParcel()->sHdrStaticInfo);
         else
