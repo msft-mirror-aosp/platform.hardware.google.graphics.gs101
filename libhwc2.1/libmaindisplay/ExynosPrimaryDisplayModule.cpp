@@ -721,6 +721,8 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
         mDisplaySceneInfo.displayScene.refresh_rate = refresh_rate;
     }
 
+    mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
+    mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     if ((ret = displayColorInterface->UpdatePresent(display, mDisplaySceneInfo.displayScene)) !=
         0) {
