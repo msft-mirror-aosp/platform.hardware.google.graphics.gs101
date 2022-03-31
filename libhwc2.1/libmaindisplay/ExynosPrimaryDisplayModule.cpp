@@ -214,7 +214,6 @@ int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
 int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
         int32_t intent)
 {
-    ALOGD("%s: mode(%d), intent(%d)", __func__, mode, intent);
     IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
@@ -242,8 +241,10 @@ int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
     mDisplaySceneInfo.setColorMode(colorMode);
     mDisplaySceneInfo.setRenderIntent(renderIntent);
 
-    if (mColorMode != mode)
+    if (mColorMode != mode) {
+        ALOGD("%s: mode(%d), intent(%d)", __func__, mode, intent);
         setGeometryChanged(GEOMETRY_DISPLAY_COLOR_MODE_CHANGED);
+    }
     mColorMode = (android_color_mode_t)mode;
 
     return HWC2_ERROR_NONE;
@@ -604,11 +605,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
     layerData.dim_ratio = layer->mPreprocessedInfo.sdrDimRatio;
     setLayerDataspace(layerData,
             static_cast<hwc::Dataspace>(layer->mDataSpace));
-    if (layer->mIsHdrLayer) {
-        if (layer->getMetaParcel() == nullptr) {
-            HDEBUGLOGE("%s:: meta data parcel is null", __func__);
-            return -EINVAL;
-        }
+    if (layer->mIsHdrLayer && layer->getMetaParcel() != nullptr) {
         if (layer->getMetaParcel()->eType & VIDEO_INFO_TYPE_HDR_STATIC)
             setLayerHdrStaticMetadata(layerData, layer->getMetaParcel()->sHdrStaticInfo);
         else
@@ -724,6 +721,8 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
         mDisplaySceneInfo.displayScene.refresh_rate = refresh_rate;
     }
 
+    mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
+    mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     if ((ret = displayColorInterface->UpdatePresent(display, mDisplaySceneInfo.displayScene)) !=
         0) {
