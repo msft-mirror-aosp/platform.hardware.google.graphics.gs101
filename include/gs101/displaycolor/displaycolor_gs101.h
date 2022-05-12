@@ -149,6 +149,9 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
         /// Get data for the OETF LUT.
         virtual const OetfData& OetfLut() const = 0;
 
+        /// Get the solid color
+        virtual const Color SolidColor() const = 0;
+
         virtual ~IDpp() {}
     };
 
