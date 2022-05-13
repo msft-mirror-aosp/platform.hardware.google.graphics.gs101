@@ -629,7 +629,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorBlob(
 int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
         ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq,
         const std::unique_ptr<DrmPlane> &plane,
-        const exynos_win_config_data &config)
+        const exynos_win_config_data &config, uint32_t &solidColor)
 {
     if ((mColorSettingChanged == false) ||
         (isPrimary() == false))
@@ -684,6 +684,10 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
     const IDisplayColorGS101::IDpp &dpp = display->getDppForLayer(mppSource);
     const uint32_t dppIndex = static_cast<uint32_t>(display->getDppIndexForLayer(mppSource));
     bool planeChanged = display->checkAndSaveLayerPlaneId(mppSource, plane->id());
+
+    auto &color = dpp.SolidColor();
+    // exynos_win_config_data.color ARGB
+    solidColor = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 
     int ret = 0;
     if ((ret = setPlaneColorBlob(plane, plane->eotf_lut_property(),
