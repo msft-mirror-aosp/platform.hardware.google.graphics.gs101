@@ -37,7 +37,8 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
         virtual int32_t setPlaneColorSetting(
                 ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq,
                 const std::unique_ptr<DrmPlane> &plane,
-                const exynos_win_config_data &config);
+                const exynos_win_config_data &config,
+                uint32_t &solidColor);
         void setColorSettingChanged(bool changed, bool forceDisplay = false) {
             mColorSettingChanged = changed;
             mForceDisplayColorSetting = forceDisplay;
