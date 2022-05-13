@@ -602,6 +602,11 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setClientCompositionColorD
 int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
         LayerColorData& layerData, ExynosLayer* layer, float dimSdrRatio)
 {
+    layerData.is_solid_color_layer = layer->isDimLayer();
+    layerData.solid_color.r = layer->mColor.r;
+    layerData.solid_color.g = layer->mColor.g;
+    layerData.solid_color.b = layer->mColor.b;
+    layerData.solid_color.a = layer->mColor.a;
     layerData.dim_ratio = layer->mPreprocessedInfo.sdrDimRatio;
     setLayerDataspace(layerData,
             static_cast<hwc::Dataspace>(layer->mDataSpace));
