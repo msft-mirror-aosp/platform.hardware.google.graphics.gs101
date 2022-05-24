@@ -893,18 +893,16 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayHistogramSetting(
     return NO_ERROR;
 }
 
-int32_t ExynosDisplayDrmInterfaceModule::setHistogramControl(int32_t control) {
+int32_t ExynosDisplayDrmInterfaceModule::setHistogramControl(hidl_histogram_control_t control) {
     if ((mHistogramInfoRegistered == false) || (isPrimary() == false)) return NO_ERROR;
 
     int ret = NO_ERROR;
     uint32_t crtc_id = mDrmCrtc->id();
 
-    if (control == HISTOGRAM_CONTROL_REQUEST) {
+    if (control == hidl_histogram_control_t::HISTOGRAM_CONTROL_REQUEST) {
         ret = mDrmDevice->CallVendorIoctl(DRM_IOCTL_EXYNOS_HISTOGRAM_REQUEST, (void *)&crtc_id);
-        ALOGD("Histogram Requested");
-    } else if (control == HISTOGRAM_CONTROL_CANCEL) {
+    } else if (control == hidl_histogram_control_t::HISTOGRAM_CONTROL_CANCEL) {
         ret = mDrmDevice->CallVendorIoctl(DRM_IOCTL_EXYNOS_HISTOGRAM_CANCEL, (void *)&crtc_id);
-        ALOGD("Histogram Canceled");
     }
 
     return ret;
@@ -916,14 +914,15 @@ int32_t ExynosDisplayDrmInterfaceModule::setHistogramData(void *bin) {
     /*
      * There are two handling methods.
      * For ContentSampling in HWC_2.3 API, histogram bin needs to be accumulated.
-     * For Histogram HIDL, histogram bin need to be sent to HIDL block.
+     * For Histogram IDL, histogram bin need to be sent to IDL block.
      */
-    if (mHistogramInfo->getHistogramType() == HistogramInfo::Histogram_Type::HISTOGRAM_HIDL) {
-        static_cast<HIDLHistogram *>(mHistogramInfo.get())->CallbackHistogram(bin);
+    if (mHistogramInfo->getHistogramType() == HistogramInfo::HistogramType::HISTOGRAM_HIDL) {
+        (mHistogramInfo.get())->callbackHistogram((char16_t *)bin);
     } else {
-    /*
-     * ContentSampling in HWC2.3 API is not supported
-     */
+        /*
+         * ContentSampling in HWC2.3 API is not supported
+         */
+        return -ENOTSUP;
     }
 
     return NO_ERROR;
