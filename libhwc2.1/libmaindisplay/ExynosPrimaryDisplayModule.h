@@ -295,11 +295,6 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 return false;
         };
 
-        DisplayType getDisplayTypeFromIndex(uint32_t index) {
-            return (index >= DisplayType::DISPLAY_MAX) ? DisplayType::DISPLAY_PRIMARY
-                                                       : DisplayType(mIndex);
-        };
-
         IDisplayColorGS101* getDisplayColorInterface() {
             ExynosDeviceModule* device = (ExynosDeviceModule*)mDevice;
             return device->getDisplayColorInterface();
