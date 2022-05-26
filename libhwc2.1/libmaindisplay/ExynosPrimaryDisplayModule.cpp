@@ -1011,10 +1011,13 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
             break;
         case LbeState::HIGH_BRIGHTNESS:
             modeStr = kAtcModeHbmStr;
-            enhanced_hbm = true;
             break;
         case LbeState::POWER_SAVE:
             modeStr = kAtcModePowerSaveStr;
+            break;
+        case LbeState::HIGH_BRIGHTNESS_ENHANCE:
+            modeStr = kAtcModeHbmStr;
+            enhanced_hbm = true;
             break;
         default:
             ALOGE("Lbe state not support");
