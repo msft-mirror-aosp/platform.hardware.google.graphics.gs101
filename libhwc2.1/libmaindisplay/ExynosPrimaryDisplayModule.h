@@ -134,6 +134,8 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         virtual void setLbeAmbientLight(int value);
         virtual LbeState getLbeState();
 
+        virtual PanelCalibrationStatus getPanelCalibrationStatus();
+
         class DisplaySceneInfo {
             public:
                 struct LayerMappingInfo {
