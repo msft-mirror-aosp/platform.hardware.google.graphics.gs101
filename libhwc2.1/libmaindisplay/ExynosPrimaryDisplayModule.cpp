@@ -1021,7 +1021,7 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     mBrightnessController->processEnhancedHbm(enhanced_hbm);
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
-        mDevice->invalidate();
+        mDevice->onRefresh();
     }
     ALOGI("Lbe state %hhd", mCurrentLbeState);
 }
@@ -1049,13 +1049,31 @@ void ExynosPrimaryDisplayModule::setLbeAmbientLight(int value) {
 
     if (mAtcLuxMapIndex != index) {
         mAtcLuxMapIndex = index;
-        mDevice->invalidate();
+        mDevice->onRefresh();
     }
     mCurrentLux = value;
 }
 
 LbeState ExynosPrimaryDisplayModule::getLbeState() {
     return mCurrentLbeState;
+}
+
+PanelCalibrationStatus ExynosPrimaryDisplayModule::getPanelCalibrationStatus() {
+    auto displayColorInterface = getDisplayColorInterface();
+    if (displayColorInterface == nullptr) {
+        return PanelCalibrationStatus::UNCALIBRATED;
+    }
+
+    auto displayType = getBuiltInDisplayType();
+    auto calibrationInfo = displayColorInterface->GetCalibrationInfo(displayType);
+
+    if (calibrationInfo.factory_cal_loaded) {
+        return PanelCalibrationStatus::ORIGINAL;
+    } else if (calibrationInfo.golden_cal_loaded) {
+        return PanelCalibrationStatus::GOLDEN;
+    } else {
+        return PanelCalibrationStatus::UNCALIBRATED;
+    }
 }
 
 int32_t ExynosPrimaryDisplayModule::setAtcStDimming(uint32_t value) {
@@ -1116,7 +1134,7 @@ void ExynosPrimaryDisplayModule::checkAtcAnimation() {
         ALOGI("atc enable is off (pending off=false)");
     }
 
-    mDevice->invalidate();
+    mDevice->onRefresh();
 }
 
 int32_t ExynosPrimaryDisplayModule::setPowerMode(int32_t mode) {
