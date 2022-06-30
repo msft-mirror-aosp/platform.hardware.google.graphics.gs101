@@ -112,14 +112,17 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 int32_t intent);
         virtual int32_t setColorTransform(const float* matrix, int32_t hint);
         virtual int32_t getClientTargetProperty(
-                hwc_client_target_property_t* outClientTargetProperty) override;
+                hwc_client_target_property_t* outClientTargetProperty,
+                HwcDimmingStage *outDimmingStage = nullptr) override;
         virtual int deliverWinConfigData();
         virtual int32_t updateColorConversionInfo();
         virtual int32_t updatePresentColorConversionInfo();
         virtual bool checkRrCompensationEnabled() {
             const DisplayType display = getDisplayTypeFromIndex(mIndex);
             IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
-            return displayColorInterface->IsRrCompensationEnabled(display);
+            return displayColorInterface
+                ? displayColorInterface->IsRrCompensationEnabled(display)
+                : false;
         }
 
         virtual bool isColorCalibratedByDevice();
@@ -130,6 +133,8 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         virtual void setLbeState(LbeState state);
         virtual void setLbeAmbientLight(int value);
         virtual LbeState getLbeState();
+
+        virtual PanelCalibrationStatus getPanelCalibrationStatus();
 
         class DisplaySceneInfo {
             public:
