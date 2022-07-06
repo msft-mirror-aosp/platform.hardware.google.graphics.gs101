@@ -123,7 +123,7 @@ void ExynosPrimaryDisplayModule::doPreProcessing() {
 int32_t ExynosPrimaryDisplayModule::getColorModes(
         uint32_t* outNumModes, int32_t* outModes)
 {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
@@ -153,7 +153,7 @@ int32_t ExynosPrimaryDisplayModule::getColorModes(
 int32_t ExynosPrimaryDisplayModule::setColorMode(int32_t mode)
 {
     ALOGD("%s: mode(%d)", __func__, mode);
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
@@ -177,7 +177,7 @@ int32_t ExynosPrimaryDisplayModule::setColorMode(int32_t mode)
 int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
         uint32_t* outNumIntents, int32_t* outIntents)
 {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
@@ -214,7 +214,7 @@ int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
 int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
         int32_t intent)
 {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
@@ -270,7 +270,7 @@ int32_t ExynosPrimaryDisplayModule::setColorTransform(
 int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
         hwc_client_target_property_t* outClientTargetProperty,
         HwcDimmingStage *outDimmingStage) {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         ALOGI("%s dc interface not created", __func__);
         return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
@@ -361,7 +361,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 
 bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
 {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         return false;
     }
@@ -380,10 +380,10 @@ bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
     return true;
 }
 
-const IDisplayColorGS101::IDpp& ExynosPrimaryDisplayModule::getDppForLayer(ExynosMPPSource* layer)
-{
+const ExynosPrimaryDisplayModule::GsInterfaceType::IDpp& ExynosPrimaryDisplayModule::getDppForLayer(
+        ExynosMPPSource* layer) {
     uint32_t index = mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
     return displayColorInterface->GetPipelineData(display)->Dpp()[index].get();
 }
@@ -402,7 +402,7 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
     int ret = 0;
     ExynosDisplayDrmInterfaceModule *moduleDisplayInterface =
         (ExynosDisplayDrmInterfaceModule*)(mDisplayInterface.get());
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
 
     bool forceDisplayColorSetting = false;
     if (!mDisplaySceneInfo.displaySettingDelivered || isForceColorUpdate())
@@ -679,7 +679,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
 int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 {
     int ret = 0;
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         return ret;
     }
@@ -714,7 +714,7 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 {
     int ret = NO_ERROR;
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         return ret;
     }
@@ -739,7 +739,7 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 }
 
 int32_t ExynosPrimaryDisplayModule::getColorAdjustedDbv(uint32_t &dbv_adj) {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         return NO_ERROR;
     }
@@ -1169,6 +1169,6 @@ bool ExynosPrimaryDisplayModule::isDisplaySwitched(int32_t mode, int32_t prevMod
 
 bool ExynosPrimaryDisplayModule::isColorCalibratedByDevice() {
     const DisplayType display = getDisplayTypeFromIndex(mIndex);
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     return displayColorInterface->GetCalibrationInfo(display).factory_cal_loaded;
 };
