@@ -896,6 +896,10 @@ bool ExynosPrimaryDisplayModule::parseAtcProfile() {
     return true;
 }
 
+bool ExynosPrimaryDisplayModule::isLbeSupported() {
+    return mLbeSupported;
+}
+
 void ExynosPrimaryDisplayModule::initLbe() {
     if (!parseAtcProfile()) {
         ALOGD("Failed to parseAtcMode");
@@ -915,6 +919,7 @@ void ExynosPrimaryDisplayModule::initLbe() {
         mAtcSubSetting[it->first.c_str()].node = String8::format(it->second.c_str(), mIndex);
         mAtcSubSetting[it->first.c_str()].value.set_dirty();
     }
+    mLbeSupported = true;
 }
 
 uint32_t ExynosPrimaryDisplayModule::getAtcLuxMapIndex(std::vector<atc_lux_map> map, uint32_t lux) {
