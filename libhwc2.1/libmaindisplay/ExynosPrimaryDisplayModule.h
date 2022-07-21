@@ -130,6 +130,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         virtual int32_t getColorAdjustedDbv(uint32_t &dbv_adj);
 
         virtual void initLbe();
+        virtual bool isLbeSupported();
         virtual void setLbeState(LbeState state);
         virtual void setLbeAmbientLight(int value);
         virtual LbeState getLbeState();
@@ -323,6 +324,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         Mutex mAtcStMutex;
         bool mPendingAtcOff;
         bool mForceColorUpdate = false;
+        bool mLbeSupported = false;
 
     protected:
         virtual int32_t setPowerMode(int32_t mode) override;
