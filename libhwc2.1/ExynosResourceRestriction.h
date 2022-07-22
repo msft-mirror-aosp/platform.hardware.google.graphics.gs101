@@ -27,7 +27,7 @@
 #define USE_MODULE_ATTR
 
 /* Basic supported features */
-static feature_support_t feature_table[] =
+static feature_support_t gs101_feature_table[] =
 {
     {MPP_DPP_GF,
         MPP_ATTR_AFBC | MPP_ATTR_BLOCK_MODE | MPP_ATTR_WINDOW_UPDATE |
@@ -52,6 +52,10 @@ static feature_support_t feature_table[] =
         MPP_ATTR_LAYER_TRANSFORM
     }
 };
+#ifdef feature_table
+#undef feature_table
+#endif
+#define feature_table gs101_feature_table
 
 /**************************************************************************************
  * HAL_PIXEL_FORMATs
@@ -90,7 +94,7 @@ enum {
 };
 *************************************************************************************/
 
-const restriction_key_t restriction_format_table[] =
+const restriction_key_t gs101_restriction_format_table[] =
 {
     {MPP_DPP_GF, NODE_NONE, HAL_PIXEL_FORMAT_RGB_565, 0},
     {MPP_DPP_GF, NODE_NONE, HAL_PIXEL_FORMAT_RGBA_8888, 0},
@@ -181,6 +185,10 @@ const restriction_key_t restriction_format_table[] =
     {MPP_G2D, NODE_NONE, HAL_PIXEL_FORMAT_GOOGLE_NV12_SP, 0},
     {MPP_G2D, NODE_NONE, HAL_PIXEL_FORMAT_GOOGLE_NV12_SP_10B, 0},
 };
+#ifdef restriction_format_table
+#undef restriction_format_table
+#endif
+#define restriction_format_table gs101_restriction_format_table
 
 const restriction_size_element restriction_size_table_rgb[] =
         {{{MPP_DPP_GF, NODE_SRC, HAL_PIXEL_FORMAT_NONE, 0},

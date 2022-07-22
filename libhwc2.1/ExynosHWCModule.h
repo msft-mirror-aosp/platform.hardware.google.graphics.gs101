@@ -20,7 +20,6 @@
 #include <array>
 
 #include "ExynosHWC.h"
-#include "DeconHeader.h"
 
 #define G2D_MAX_SRC_NUM 3
 
@@ -55,7 +54,7 @@ struct exynos_mpp_t {
     uint32_t pre_assign_info;
 };
 
-const dpp_channel_map_t IDMA_CHANNEL_MAP[] = {
+const dpp_channel_map_t gs101_idma_channel_map[] = {
     /* GF physical index is switched to change assign order */
     /* DECON_IDMA is not used */
     {MPP_DPP_GF,     0, IDMA(0),   IDMA(0)},
@@ -67,6 +66,10 @@ const dpp_channel_map_t IDMA_CHANNEL_MAP[] = {
     {MPP_P_TYPE_MAX, 0, IDMA(6),   IDMA(6)}, // not idma but..
     {static_cast<mpp_phycal_type_t>(MAX_DECON_DMA_TYPE), 0, MAX_DECON_DMA_TYPE, IDMA(7)}
 };
+#ifdef IDMA_CHANNEL_MAP
+#undef IDMA_CHANNEL_MAP
+#endif
+#define IDMA_CHANNEL_MAP gs101_idma_channel_map
 
 #define MAX_NAME_SIZE   32
 struct exynos_display_t {
@@ -126,7 +129,7 @@ enum {
     HWC_DISPLAY_SECONDARY_BIT = 1 << (SECOND_DISPLAY_START_BIT + HWC_DISPLAY_PRIMARY),
 };
 
-const exynos_mpp_t AVAILABLE_OTF_MPP_UNITS[] = {
+const exynos_mpp_t gs101_available_otf_mpp_units[] = {
     {MPP_DPP_GF, MPP_LOGICAL_DPP_GF, "DPP_GF0", 0, 0, HWC_DISPLAY_PRIMARY_BIT},
     {MPP_DPP_GF, MPP_LOGICAL_DPP_GF, "DPP_GF1", 1, 0, HWC_DISPLAY_PRIMARY_BIT},
     {MPP_DPP_GF, MPP_LOGICAL_DPP_GF, "DPP_GF2", 2, 0, HWC_DISPLAY_SECONDARY_BIT},
@@ -134,6 +137,10 @@ const exynos_mpp_t AVAILABLE_OTF_MPP_UNITS[] = {
     {MPP_DPP_VGRFS, MPP_LOGICAL_DPP_VGRFS, "DPP_VGRFS1", 1, 0, HWC_DISPLAY_PRIMARY_BIT},
     {MPP_DPP_VGRFS, MPP_LOGICAL_DPP_VGRFS, "DPP_VGRFS2", 2, 0, HWC_DISPLAY_PRIMARY_BIT}
 };
+#ifdef AVAILABLE_OTF_MPP_UNITS
+#undef AVAILABLE_OTF_MPP_UNITS
+#endif
+#define AVAILABLE_OTF_MPP_UNITS gs101_available_otf_mpp_units
 
 const exynos_mpp_t AVAILABLE_M2M_MPP_UNITS[] = {
 #ifndef DISABLE_M2M_MPPS
