@@ -30,17 +30,17 @@
 extern exynos_hwc_control exynosHWCControl;
 #endif
 
+using namespace gs101;
+
 mpp_phycal_type_t getMPPTypeFromDPPChannel(uint32_t channel) {
 
     for (int i=0; i < MAX_DECON_DMA_TYPE; i++){
-        if(IDMA_CHANNEL_MAP[i].channel == channel)
-            return IDMA_CHANNEL_MAP[i].type;
+        if(idma_channel_map[i].channel == channel)
+            return idma_channel_map[i].type;
     }
 
     return MPP_P_TYPE_MAX;
 }
-
-using namespace gs101;
 
 // enable map layerDataMappingInfo comparison in needDisplayColorSetting()
 inline bool operator==(const ExynosPrimaryDisplayModule::DisplaySceneInfo::LayerMappingInfo &lm1,
