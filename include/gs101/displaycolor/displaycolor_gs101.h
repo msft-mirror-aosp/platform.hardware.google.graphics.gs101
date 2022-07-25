@@ -54,6 +54,24 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
         std::array<YT, N> posy;
     };
 
+    template <typename XType, typename YType, size_t N>
+    struct FlexLutConfigType {
+        // keep XContainer, YContainer and kLutLen for backward compatibility.
+        using XContainer = XType;
+        using YContainer = YType;
+        static constexpr size_t kLutLen = N;
+
+        TransferFunctionData<XContainer, YContainer, kLutLen> tf_data;
+    };
+
+    template <typename DType, size_t N>
+    struct MatrixConfigType {
+        using Container = DType;
+        static constexpr size_t kDimensions = N;
+
+        MatrixData<Container, kDimensions> matrix_data;
+    };
+
     /**
      * @brief Interface for accessing data for DPP stages.
      *
@@ -64,18 +82,8 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
      */
     struct IDppData {
         struct IEotfData {
-           private:
-            struct EotfConfigType {
-                using XContainer = uint16_t;
-                using YContainer = uint32_t;
-                static constexpr size_t kLutLen = 129;
-
-                TransferFunctionData<XContainer, YContainer, kLutLen> tf_data;
-            };
-
-           public:
             /// Register data for the EOTF LUT in DPP.
-            using EotfData = DisplayStage<EotfConfigType>;
+            using EotfData = DisplayStage<FlexLutConfigType<uint16_t, uint32_t, 129>>;
 
             /// Get data for the EOTF LUT.
             virtual const EotfData& EotfLut() const = 0;
@@ -83,17 +91,9 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
         };
 
         struct IGmData {
-           private:
-            struct GmConfigType {
-                using Container = uint32_t;
-                static constexpr size_t kDimensions = 3;
-
-                MatrixData<Container, kDimensions> matrix_data;
-            };
-
            public:
             /// Register data for the gamut mapping (GM) matrix in DPP.
-            using GmData = DisplayStage<GmConfigType>;
+            using GmData = DisplayStage<MatrixConfigType<uint32_t, 3>>;
 
             /// Get data for the gamut mapping (GM) matrix.
             virtual const GmData& Gm() const = 0;
@@ -102,12 +102,7 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
 
         struct IDtmData {
            private:
-            struct DtmConfigType {
-                using XContainer = uint16_t;
-                using YContainer = uint32_t;
-                static constexpr size_t kLutLen = 33;
-
-                TransferFunctionData<XContainer, YContainer, kLutLen> tf_data;
+            struct Rgb2YData {
                 uint16_t coeff_r;    // DPP_HDR_LSI_L#_TM_COEF[COEFR] #(1, 3, 5)
                 uint16_t coeff_g;    // DPP_HDR_LSI_L#_TM_COEF[COEFG] #(1, 3, 5)
                 uint16_t coeff_b;    // DPP_HDR_LSI_L#_TM_COEF[COEFB] #(1, 3, 5)
@@ -116,6 +111,11 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
                 uint16_t rng_y_min;  // DPP_HDR_LSI_L#_TM_RNGY[MINY] #(1, 3, 5)
                 uint16_t rng_y_max;  // DPP_HDR_LSI_L#_TM_RNGY[MAXY] #(1, 3, 5)
             };
+
+            // To avoid updating legacy source code after separate lut and rgb2y,
+            // use inheritance instead of composition.
+            struct DtmConfigType : public FlexLutConfigType<uint16_t, uint32_t, 33>,
+                                   public Rgb2YData {};
 
            public:
             /**
@@ -139,18 +139,8 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
         };
 
         struct IOetfData {
-           private:
-            struct OetfConfigType {
-                using XContainer = uint32_t;
-                using YContainer = uint16_t;
-                static constexpr size_t kLutLen = 33;
-
-                TransferFunctionData<XContainer, YContainer, kLutLen> tf_data;
-            };
-
-           public:
             /// Register data for the OETF LUT in DPP.
-            using OetfData = DisplayStage<OetfConfigType>;
+            using OetfData = DisplayStage<FlexLutConfigType<uint32_t, uint16_t, 33>>;
 
             /// Get data for the OETF LUT.
             virtual const OetfData& OetfLut() const = 0;
@@ -169,14 +159,6 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
 
     /// Interface for accessing data for DQE stages.
     struct IDqeData {
-       private:
-        struct DqeMatrixConfigType {
-            using Container = uint16_t;
-            static constexpr size_t kDimensions = 3;
-
-            struct MatrixData<Container, kDimensions> matrix_data;
-        };
-
        public:
         struct IDqeControlData {
            private:
@@ -224,7 +206,7 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
 
         struct IGammaMatrixData {
             /// Register data for the gamma and linear matrices in DQE.
-            using DqeMatrixData = DisplayStage<DqeMatrixConfigType>;
+            using DqeMatrixData = DisplayStage<MatrixConfigType<uint16_t, 3>>;
 
             /// Get data for the gamma-space matrix.
             virtual const DqeMatrixData& GammaMatrix() const = 0;
@@ -251,7 +233,7 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
 
         struct ILinearMatrixData {
             /// Register data for the gamma and linear matrices in DQE.
-            using DqeMatrixData = DisplayStage<DqeMatrixConfigType>;
+            using DqeMatrixData = DisplayStage<MatrixConfigType<uint16_t, 3>>;
 
             /// Get data for the linear-space matrix.
             virtual const DqeMatrixData& LinearMatrix() const = 0;
