@@ -32,8 +32,6 @@
 #define BRIGHTNESS_SYSFS_NODE "/sys/class/backlight/panel%d-backlight/brightness"
 #define MAX_BRIGHTNESS_SYSFS_NODE "/sys/class/backlight/panel%d-backlight/max_brightness"
 
-#define EARLY_WAKUP_NODE_0_BASE "/sys/devices/platform/1c300000.drmdecon/early_wakeup"
-
 #define IDMA(x) static_cast<decon_idma_type>(x)
 
 #define MPP_G2D_CAPACITY    3.5
@@ -113,6 +111,9 @@ enum {
 };
 
 namespace gs101 {
+
+static const char *early_wakeup_node_0_base =
+    "/sys/devices/platform/1c300000.drmdecon/early_wakeup";
 
 static const dpp_channel_map_t idma_channel_map[] = {
     /* GF physical index is switched to change assign order */
