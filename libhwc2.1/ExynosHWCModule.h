@@ -125,6 +125,11 @@ static const exynos_mpp_t available_otf_mpp_units[] = {
     {MPP_DPP_VGRFS, MPP_LOGICAL_DPP_VGRFS, "DPP_VGRFS2", 2, 0, HWC_DISPLAY_PRIMARY_BIT, 0, 0}
 };
 
+static const std::array<exynos_display_t, 2> AVAILABLE_DISPLAY_UNITS = {{
+    {HWC_DISPLAY_PRIMARY, 0, "PrimaryDisplay", "/dev/dri/card0", ""},
+    {HWC_DISPLAY_PRIMARY, 1, "SecondaryDisplay", "/dev/dri/card0", ""}
+}};
+
 } // namespace gs101
 
 
@@ -138,10 +143,5 @@ const exynos_mpp_t AVAILABLE_M2M_MPP_UNITS[] = {
     {MPP_G2D, MPP_LOGICAL_G2D_COMBO, "G2D0-COMBO_VIR", 0, 5, HWC_DISPLAY_VIRTUAL_BIT, 0, 0}
 #endif
 };
-
-const std::array<exynos_display_t, 2> AVAILABLE_DISPLAY_UNITS = {{
-    {HWC_DISPLAY_PRIMARY, 0, "PrimaryDisplay", "/dev/dri/card0", ""},
-    {HWC_DISPLAY_PRIMARY, 1, "SecondaryDisplay", "/dev/dri/card0", ""}
-}};
 
 #endif
