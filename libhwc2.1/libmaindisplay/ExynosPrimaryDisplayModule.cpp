@@ -1032,6 +1032,8 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     if (setAtcMode(modeStr) != NO_ERROR) return;
 
     mBrightnessController->processEnhancedHbm(enhanced_hbm);
+    mBrightnessController->setOutdoorVisibility(state);
+
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
         mDevice->onRefresh();
