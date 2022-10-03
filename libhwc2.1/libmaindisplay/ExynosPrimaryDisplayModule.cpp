@@ -1032,6 +1032,8 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     if (setAtcMode(modeStr) != NO_ERROR) return;
 
     mBrightnessController->processEnhancedHbm(enhanced_hbm);
+    mBrightnessController->setOutdoorVisibility(state);
+
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
         mDevice->onRefresh();
@@ -1151,7 +1153,7 @@ void ExynosPrimaryDisplayModule::checkAtcAnimation() {
 }
 
 int32_t ExynosPrimaryDisplayModule::setPowerMode(int32_t mode) {
-    hwc2_power_mode_t prevPowerModeState = mPowerModeState;
+    hwc2_power_mode_t prevPowerModeState = mPowerModeState.value_or(HWC2_POWER_MODE_OFF);
     int32_t ret;
 
     ret = ExynosPrimaryDisplay::setPowerMode(mode);
