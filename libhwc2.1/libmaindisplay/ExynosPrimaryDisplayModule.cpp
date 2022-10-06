@@ -450,7 +450,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerDataMappingInfo(
     }
     // if assigned displaycolor dppIdx changes, do not reuse it (force plane color update).
     uint32_t oldPlaneId = prev_layerDataMappingInfo.count(layer) != 0 &&
-                    prev_layerDataMappingInfo[layer].dppIdx != index
+                    prev_layerDataMappingInfo[layer].dppIdx == index
             ? prev_layerDataMappingInfo[layer].planeId
             : UINT_MAX;
     layerDataMappingInfo.insert(std::make_pair(layer, LayerMappingInfo{ index, oldPlaneId }));
@@ -602,6 +602,11 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setClientCompositionColorD
 int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
         LayerColorData& layerData, ExynosLayer* layer, float dimSdrRatio)
 {
+    layerData.is_solid_color_layer = layer->isDimLayer();
+    layerData.solid_color.r = layer->mColor.r;
+    layerData.solid_color.g = layer->mColor.g;
+    layerData.solid_color.b = layer->mColor.b;
+    layerData.solid_color.a = layer->mColor.a;
     layerData.dim_ratio = layer->mPreprocessedInfo.sdrDimRatio;
     setLayerDataspace(layerData,
             static_cast<hwc::Dataspace>(layer->mDataSpace));
@@ -891,6 +896,10 @@ bool ExynosPrimaryDisplayModule::parseAtcProfile() {
     return true;
 }
 
+bool ExynosPrimaryDisplayModule::isLbeSupported() {
+    return mLbeSupported;
+}
+
 void ExynosPrimaryDisplayModule::initLbe() {
     if (!parseAtcProfile()) {
         ALOGD("Failed to parseAtcMode");
@@ -910,6 +919,7 @@ void ExynosPrimaryDisplayModule::initLbe() {
         mAtcSubSetting[it->first.c_str()].node = String8::format(it->second.c_str(), mIndex);
         mAtcSubSetting[it->first.c_str()].value.set_dirty();
     }
+    mLbeSupported = true;
 }
 
 uint32_t ExynosPrimaryDisplayModule::getAtcLuxMapIndex(std::vector<atc_lux_map> map, uint32_t lux) {
@@ -1006,10 +1016,13 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
             break;
         case LbeState::HIGH_BRIGHTNESS:
             modeStr = kAtcModeHbmStr;
-            enhanced_hbm = true;
             break;
         case LbeState::POWER_SAVE:
             modeStr = kAtcModePowerSaveStr;
+            break;
+        case LbeState::HIGH_BRIGHTNESS_ENHANCE:
+            modeStr = kAtcModeHbmStr;
+            enhanced_hbm = true;
             break;
         default:
             ALOGE("Lbe state not support");
@@ -1019,6 +1032,8 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     if (setAtcMode(modeStr) != NO_ERROR) return;
 
     mBrightnessController->processEnhancedHbm(enhanced_hbm);
+    mBrightnessController->setOutdoorVisibility(state);
+
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
         mDevice->onRefresh();
@@ -1138,7 +1153,7 @@ void ExynosPrimaryDisplayModule::checkAtcAnimation() {
 }
 
 int32_t ExynosPrimaryDisplayModule::setPowerMode(int32_t mode) {
-    hwc2_power_mode_t prevPowerModeState = mPowerModeState;
+    hwc2_power_mode_t prevPowerModeState = mPowerModeState.value_or(HWC2_POWER_MODE_OFF);
     int32_t ret;
 
     ret = ExynosPrimaryDisplay::setPowerMode(mode);
