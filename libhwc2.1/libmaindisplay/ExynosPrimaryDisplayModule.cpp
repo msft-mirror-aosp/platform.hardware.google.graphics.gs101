@@ -996,6 +996,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
             ALOGE("Fail to set atc enable = %d", enable);
             return -EPERM;
         }
+        mPendingAtcOff = false;
     }
 
     mCurrentAtcModeName = enable ? mode_name : "NULL";
