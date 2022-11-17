@@ -96,7 +96,8 @@ using namespace displaycolor;
 class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
     using GsInterfaceType = gs::ColorDrmBlobFactory::GsInterfaceType;
     public:
-        ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice *device);
+        ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice* device,
+                                   const std::string& displayName);
         ~ExynosPrimaryDisplayModule();
         void usePreDefinedWindow(bool use);
         virtual int32_t validateWinConfigData();
