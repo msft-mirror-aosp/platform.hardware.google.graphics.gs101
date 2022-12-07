@@ -483,6 +483,7 @@ const std::string ExynosDisplayDrmInterfaceModule::GetPanelInfo(const std::strin
 int32_t ExynosDisplayDrmInterfaceModule::createHistoRoiBlob(uint32_t &blobId) {
     struct histogram_roi histo_roi;
 
+    std::unique_lock<std::mutex> lk((mHistogramInfo->mSetHistInfoMutex));
     histo_roi.start_x = mHistogramInfo->getHistogramROI().start_x;
     histo_roi.start_y = mHistogramInfo->getHistogramROI().start_y;
     histo_roi.hsize = mHistogramInfo->getHistogramROI().hsize;
@@ -500,6 +501,7 @@ int32_t ExynosDisplayDrmInterfaceModule::createHistoRoiBlob(uint32_t &blobId) {
 int32_t ExynosDisplayDrmInterfaceModule::createHistoWeightsBlob(uint32_t &blobId) {
     struct histogram_weights histo_weights;
 
+    std::unique_lock<std::mutex> lk((mHistogramInfo->mSetHistInfoMutex));
     histo_weights.weight_r = mHistogramInfo->getHistogramWeights().weight_r;
     histo_weights.weight_g = mHistogramInfo->getHistogramWeights().weight_g;
     histo_weights.weight_b = mHistogramInfo->getHistogramWeights().weight_b;
@@ -550,7 +552,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayHistoBlob(
 
 int32_t ExynosDisplayDrmInterfaceModule::setDisplayHistogramSetting(
         ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq) {
-    if ((mHistogramInfoRegistered == false) || (isPrimary() == false)) return NO_ERROR;
+    if ((isHistogramInfoRegistered() == false) || (isPrimary() == false)) return NO_ERROR;
 
     int ret = NO_ERROR;
 
@@ -580,7 +582,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayHistogramSetting(
 }
 
 int32_t ExynosDisplayDrmInterfaceModule::setHistogramControl(hidl_histogram_control_t control) {
-    if ((mHistogramInfoRegistered == false) || (isPrimary() == false)) return NO_ERROR;
+    if ((isHistogramInfoRegistered() == false) || (isPrimary() == false)) return NO_ERROR;
 
     int ret = NO_ERROR;
     uint32_t crtc_id = mDrmCrtc->id();

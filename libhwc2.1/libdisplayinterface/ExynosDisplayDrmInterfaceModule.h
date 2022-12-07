@@ -53,17 +53,10 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
         virtual int32_t setDisplayHistogramSetting(
                 ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq);
 
-        virtual void registerHistogramInfo(IDLHistogram *info) {
-            if (info)
-                mHistogramInfo.reset(info);
-            else
-                mHistogramInfo.reset();
-
-            if (mHistogramInfo.get())
-                mHistogramInfoRegistered = true;
-            else
-                mHistogramInfoRegistered = false;
+        virtual void registerHistogramInfo(const std::shared_ptr<IDLHistogram> &info) {
+            mHistogramInfo = info;
         }
+        bool isHistogramInfoRegistered() { return mHistogramInfo != nullptr; }
         int32_t setHistogramControl(hidl_histogram_control_t enabled);
         virtual int32_t setHistogramData(void *bin);
 
@@ -160,7 +153,6 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
         HistoBlobs mOldHistoBlobs;
 
         std::shared_ptr<IDLHistogram> mHistogramInfo;
-        bool mHistogramInfoRegistered = false;
 
     private:
         const std::string GetPanelInfo(const std::string &sysfs_rel, char delim);
