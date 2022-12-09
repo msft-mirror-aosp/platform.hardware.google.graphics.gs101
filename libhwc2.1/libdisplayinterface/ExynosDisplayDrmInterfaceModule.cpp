@@ -629,7 +629,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorBlob(
 int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
         ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq,
         const std::unique_ptr<DrmPlane> &plane,
-        const exynos_win_config_data &config)
+        const exynos_win_config_data &config, uint32_t &solidColor)
 {
     if ((mColorSettingChanged == false) ||
         (isPrimary() == false))
@@ -684,6 +684,10 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
     const IDisplayColorGS101::IDpp &dpp = display->getDppForLayer(mppSource);
     const uint32_t dppIndex = static_cast<uint32_t>(display->getDppIndexForLayer(mppSource));
     bool planeChanged = display->checkAndSaveLayerPlaneId(mppSource, plane->id());
+
+    auto &color = dpp.SolidColor();
+    // exynos_win_config_data.color ARGB
+    solidColor = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
 
     int ret = 0;
     if ((ret = setPlaneColorBlob(plane, plane->eotf_lut_property(),
@@ -889,18 +893,16 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayHistogramSetting(
     return NO_ERROR;
 }
 
-int32_t ExynosDisplayDrmInterfaceModule::setHistogramControl(int32_t control) {
+int32_t ExynosDisplayDrmInterfaceModule::setHistogramControl(hidl_histogram_control_t control) {
     if ((mHistogramInfoRegistered == false) || (isPrimary() == false)) return NO_ERROR;
 
     int ret = NO_ERROR;
     uint32_t crtc_id = mDrmCrtc->id();
 
-    if (control == HISTOGRAM_CONTROL_REQUEST) {
+    if (control == hidl_histogram_control_t::HISTOGRAM_CONTROL_REQUEST) {
         ret = mDrmDevice->CallVendorIoctl(DRM_IOCTL_EXYNOS_HISTOGRAM_REQUEST, (void *)&crtc_id);
-        ALOGD("Histogram Requested");
-    } else if (control == HISTOGRAM_CONTROL_CANCEL) {
+    } else if (control == hidl_histogram_control_t::HISTOGRAM_CONTROL_CANCEL) {
         ret = mDrmDevice->CallVendorIoctl(DRM_IOCTL_EXYNOS_HISTOGRAM_CANCEL, (void *)&crtc_id);
-        ALOGD("Histogram Canceled");
     }
 
     return ret;
@@ -912,14 +914,15 @@ int32_t ExynosDisplayDrmInterfaceModule::setHistogramData(void *bin) {
     /*
      * There are two handling methods.
      * For ContentSampling in HWC_2.3 API, histogram bin needs to be accumulated.
-     * For Histogram HIDL, histogram bin need to be sent to HIDL block.
+     * For Histogram IDL, histogram bin need to be sent to IDL block.
      */
-    if (mHistogramInfo->getHistogramType() == HistogramInfo::Histogram_Type::HISTOGRAM_HIDL) {
-        static_cast<HIDLHistogram *>(mHistogramInfo.get())->CallbackHistogram(bin);
+    if (mHistogramInfo->getHistogramType() == HistogramInfo::HistogramType::HISTOGRAM_HIDL) {
+        (mHistogramInfo.get())->callbackHistogram((char16_t *)bin);
     } else {
-    /*
-     * ContentSampling in HWC2.3 API is not supported
-     */
+        /*
+         * ContentSampling in HWC2.3 API is not supported
+         */
+        return -ENOTSUP;
     }
 
     return NO_ERROR;
