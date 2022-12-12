@@ -48,8 +48,9 @@ inline bool operator==(const ExynosPrimaryDisplayModule::DisplaySceneInfo::Layer
     return lm1.dppIdx == lm2.dppIdx && lm1.planeId == lm2.planeId;
 }
 
-ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice* device)
-      : ExynosPrimaryDisplay(index, device) {
+ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice* device,
+                                                       const std::string& displayName)
+      : ExynosPrimaryDisplay(index, device, displayName) {
 #ifdef FORCE_GPU_COMPOSITION
     exynosHWCControl.forceGpu = true;
 #endif

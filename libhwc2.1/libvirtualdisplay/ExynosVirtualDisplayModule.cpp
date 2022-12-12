@@ -20,9 +20,9 @@
 
 using namespace gs101;
 
-ExynosVirtualDisplayModule::ExynosVirtualDisplayModule(uint32_t index, ExynosDevice *device)
-    :   ExynosVirtualDisplay(index, device)
-{
+ExynosVirtualDisplayModule::ExynosVirtualDisplayModule(uint32_t index, ExynosDevice* device,
+                                                       const std::string& displayName)
+      : ExynosVirtualDisplay(index, device, displayName) {
     mGLESFormat = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M;
 
     if (device == NULL) {
