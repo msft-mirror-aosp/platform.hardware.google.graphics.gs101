@@ -996,6 +996,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
             ALOGE("Fail to set atc enable = %d", enable);
             return -EPERM;
         }
+        mPendingAtcOff = false;
     }
 
     mCurrentAtcModeName = enable ? mode_name : "NULL";
@@ -1032,6 +1033,8 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     if (setAtcMode(modeStr) != NO_ERROR) return;
 
     mBrightnessController->processEnhancedHbm(enhanced_hbm);
+    mBrightnessController->setOutdoorVisibility(state);
+
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
         mDevice->onRefresh();
@@ -1151,7 +1154,7 @@ void ExynosPrimaryDisplayModule::checkAtcAnimation() {
 }
 
 int32_t ExynosPrimaryDisplayModule::setPowerMode(int32_t mode) {
-    hwc2_power_mode_t prevPowerModeState = mPowerModeState;
+    hwc2_power_mode_t prevPowerModeState = mPowerModeState.value_or(HWC2_POWER_MODE_OFF);
     int32_t ret;
 
     ret = ExynosPrimaryDisplay::setPowerMode(mode);
