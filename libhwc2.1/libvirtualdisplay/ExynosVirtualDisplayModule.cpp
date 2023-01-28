@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #undef LOG_TAG
-#define LOG_TAG "virtualdisplaymodule"
+#define LOG_TAG "hwc-virt-display"
 
 #include "ExynosVirtualDisplayModule.h"
 
