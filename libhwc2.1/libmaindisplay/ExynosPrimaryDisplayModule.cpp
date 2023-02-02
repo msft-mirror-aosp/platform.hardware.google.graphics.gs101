@@ -1038,7 +1038,7 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
 
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
-        mDevice->onRefresh();
+        mDevice->onRefresh(mDisplayId);
     }
     ALOGI("Lbe state %hhd", mCurrentLbeState);
 }
@@ -1066,7 +1066,7 @@ void ExynosPrimaryDisplayModule::setLbeAmbientLight(int value) {
 
     if (mAtcLuxMapIndex != index) {
         mAtcLuxMapIndex = index;
-        mDevice->onRefresh();
+        mDevice->onRefresh(mDisplayId);
     }
     mCurrentLux = value;
 }
@@ -1151,7 +1151,7 @@ void ExynosPrimaryDisplayModule::checkAtcAnimation() {
         ALOGI("atc enable is off (pending off=false)");
     }
 
-    mDevice->onRefresh();
+    mDevice->onRefresh(mDisplayId);
 }
 
 int32_t ExynosPrimaryDisplayModule::setPowerMode(int32_t mode) {
