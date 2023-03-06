@@ -257,9 +257,10 @@ int32_t ExynosPrimaryDisplayModule::setColorTransform(
     if ((hint < HAL_COLOR_TRANSFORM_IDENTITY) ||
         (hint > HAL_COLOR_TRANSFORM_CORRECT_TRITANOPIA))
         return HWC2_ERROR_BAD_PARAMETER;
-    ALOGI("%s:: %d, %d", __func__, mColorTransformHint, hint);
-    if (mColorTransformHint != hint)
+    if (mColorTransformHint != hint) {
+        ALOGI("%s:: %d -> %d", __func__, mColorTransformHint, hint);
         setGeometryChanged(GEOMETRY_DISPLAY_COLOR_TRANSFORM_CHANGED);
+    }
     mColorTransformHint = hint;
 #ifdef HWC_SUPPORT_COLOR_TRANSFORM
     mDisplaySceneInfo.setColorTransform(matrix);
