@@ -298,6 +298,26 @@ int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
     return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
 }
 
+int32_t ExynosPrimaryDisplayModule::updateBrightnessTable() {
+    const IBrightnessTable* table = nullptr;
+    auto displayColorInterface = getDisplayColorInterface();
+    if (displayColorInterface == nullptr) {
+        ALOGE("%s displaycolor interface not available!", __func__);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
+    auto displayType = getBuiltInDisplayType();
+    auto ret = displayColorInterface->GetBrightnessTable(displayType, table);
+    if (ret != android::OK) {
+        ALOGE("%s brightness table not available!", __func__);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+    // BrightnessController is not ready until this step
+    mBrightnessController->updateBrightnessTable(table);
+
+    return HWC2_ERROR_NONE;
+}
+
 int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 {
     int32_t ret = 0;
