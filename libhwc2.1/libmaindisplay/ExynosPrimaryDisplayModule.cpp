@@ -304,12 +304,33 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 
     // TODO: b/212616164 remove dimSdrRatio
     float dimSdrRatio = mBrightnessController->getSdrDimRatioForInstantHbm();
+
+    // for client target
+    {
+        LayerColorData& layerColorData = mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
+
+        /* set layer data mapping info */
+        if ((ret = mDisplaySceneInfo.setLayerDataMappingInfo(&mClientCompositionInfo, layerNum)) !=
+            NO_ERROR) {
+            DISPLAY_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
+            return ret;
+        }
+
+        if ((ret = mDisplaySceneInfo.setClientCompositionColorData(mClientCompositionInfo,
+                                                                   layerColorData, dimSdrRatio)) !=
+            NO_ERROR) {
+            DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
+            return ret;
+        }
+
+        layerNum++;
+    }
+
     for (uint32_t i = 0; i < mLayers.size(); i++)
     {
         ExynosLayer* layer = mLayers[i];
 
-        if (layer->mValidateCompositionType == HWC2_COMPOSITION_CLIENT)
-            continue;
+        if (layer->mCompositionType == HWC2_COMPOSITION_CLIENT) continue;
 
         LayerColorData& layerColorData =
             mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
@@ -328,26 +349,6 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
             DISPLAY_LOGE("%s: layer[%d] setLayerColorData fail, layerNum(%d)",
                     __func__, i, layerNum);
             return ret;
-        }
-
-        layerNum++;
-    }
-
-    if (mClientCompositionInfo.mHasCompositionLayer) {
-        LayerColorData& layerColorData =
-            mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
-
-        /* set layer data mapping info */
-        if ((ret = mDisplaySceneInfo.setLayerDataMappingInfo(&mClientCompositionInfo,
-                                                             layerNum)) != NO_ERROR) {
-            DISPLAY_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
-            return ret;
-        }
-
-        if ((ret = mDisplaySceneInfo.setClientCompositionColorData(
-                 mClientCompositionInfo, layerColorData, dimSdrRatio)) != NO_ERROR) {
-          DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
-          return ret;
         }
 
         layerNum++;
