@@ -441,19 +441,9 @@ uint32_t ExynosDisplayDrmInterfaceModule::SaveBlob::getBlob(uint32_t type)
 void ExynosDisplayDrmInterfaceModule::getDisplayInfo(
         std::vector<displaycolor::DisplayInfo> &display_info) {
     displaycolor::DisplayInfo primary_display;
-    auto &tb = primary_display.brightness_table;
-    auto *brightnessTable = mExynosDisplay->mBrightnessController->getBrightnessTable();
 
-    tb.nbm_nits_min = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mNitsStart;
-    tb.nbm_nits_max = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mNitsEnd;
-    tb.nbm_dbv_min = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mBklStart;
-    tb.nbm_dbv_max = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mBklEnd;
-
-    tb.hbm_nits_min = brightnessTable[toUnderlying(BrightnessRange::HBM)].mNitsStart;
-    tb.hbm_nits_max = brightnessTable[toUnderlying(BrightnessRange::HBM)].mNitsEnd;
-    tb.hbm_dbv_min = brightnessTable[toUnderlying(BrightnessRange::HBM)].mBklStart;
-    tb.hbm_dbv_max = brightnessTable[toUnderlying(BrightnessRange::HBM)].mBklEnd;
-
+    primary_display.brightness_ranges =
+            mExynosDisplay->mBrightnessController->getBrightnessRanges();
     primary_display.panel_name = GetPanelName();
     primary_display.panel_serial = GetPanelSerial();
 
