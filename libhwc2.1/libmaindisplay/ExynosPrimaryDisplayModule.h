@@ -262,6 +262,8 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         // primary or secondary
         DisplayType getBuiltInDisplayType() { return getDisplayTypeFromIndex(mIndex); }
 
+        int32_t updateBrightnessTable();
+
     private:
         int32_t setLayersColorData();
         DisplaySceneInfo mDisplaySceneInfo;
