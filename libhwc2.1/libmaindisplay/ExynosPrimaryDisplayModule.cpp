@@ -540,34 +540,31 @@ void ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerHdrDynamicMetadata(
         layerColorData.dynamic_metadata.is_valid = true;
     }
     updateInfoSingleVal(layerColorData.dynamic_metadata.display_maximum_luminance,
-            exynosHdrDynamicInfo.data.display_maximum_luminance);
+                        exynosHdrDynamicInfo.data.targeted_system_display_maximum_luminance);
 
     if (!std::equal(layerColorData.dynamic_metadata.maxscl.begin(),
-                layerColorData.dynamic_metadata.maxscl.end(),
-                exynosHdrDynamicInfo.data.maxscl)) {
+                    layerColorData.dynamic_metadata.maxscl.end(),
+                    exynosHdrDynamicInfo.data.maxscl[0])) {
         colorSettingChanged = true;
         for (uint32_t i = 0 ; i < layerColorData.dynamic_metadata.maxscl.size(); i++) {
-            layerColorData.dynamic_metadata.maxscl[i] =
-                exynosHdrDynamicInfo.data.maxscl[i];
+          layerColorData.dynamic_metadata.maxscl[i] = exynosHdrDynamicInfo.data.maxscl[0][i];
         }
     }
     static constexpr uint32_t DYNAMIC_META_DAT_SIZE = 15;
 
     updateInfoVectorVal(layerColorData.dynamic_metadata.maxrgb_percentages,
-            exynosHdrDynamicInfo.data.maxrgb_percentages,
-            DYNAMIC_META_DAT_SIZE);
+                        exynosHdrDynamicInfo.data.maxrgb_percentages[0], DYNAMIC_META_DAT_SIZE);
     updateInfoVectorVal(layerColorData.dynamic_metadata.maxrgb_percentiles,
-            exynosHdrDynamicInfo.data.maxrgb_percentiles,
-            DYNAMIC_META_DAT_SIZE);
+                        exynosHdrDynamicInfo.data.maxrgb_percentiles[0], DYNAMIC_META_DAT_SIZE);
     updateInfoSingleVal(layerColorData.dynamic_metadata.tm_flag,
-            exynosHdrDynamicInfo.data.tone_mapping.tone_mapping_flag);
+                        exynosHdrDynamicInfo.data.tone_mapping.tone_mapping_flag[0]);
     updateInfoSingleVal(layerColorData.dynamic_metadata.tm_knee_x,
-            exynosHdrDynamicInfo.data.tone_mapping.knee_point_x);
+                        exynosHdrDynamicInfo.data.tone_mapping.knee_point_x[0]);
     updateInfoSingleVal(layerColorData.dynamic_metadata.tm_knee_y,
-            exynosHdrDynamicInfo.data.tone_mapping.knee_point_y);
+                        exynosHdrDynamicInfo.data.tone_mapping.knee_point_y[0]);
     updateInfoVectorVal(layerColorData.dynamic_metadata.bezier_curve_anchors,
-            exynosHdrDynamicInfo.data.tone_mapping.bezier_curve_anchors,
-            DYNAMIC_META_DAT_SIZE);
+                        exynosHdrDynamicInfo.data.tone_mapping.bezier_curve_anchors[0],
+                        DYNAMIC_META_DAT_SIZE);
 }
 
 int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setClientCompositionColorData(
