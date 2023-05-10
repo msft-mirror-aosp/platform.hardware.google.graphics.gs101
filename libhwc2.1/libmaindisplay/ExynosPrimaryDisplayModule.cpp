@@ -248,6 +248,11 @@ int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
     }
     mColorMode = (android_color_mode_t)mode;
 
+    if (renderIntent == hwc::RenderIntent::COLORIMETRIC)
+        mBrightnessController->updateAclMode(true);
+    else
+        mBrightnessController->updateAclMode(false);
+
     return HWC2_ERROR_NONE;
 }
 
