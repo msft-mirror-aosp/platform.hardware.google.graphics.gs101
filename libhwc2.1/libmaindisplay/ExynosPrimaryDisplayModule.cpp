@@ -480,7 +480,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerDataMappingInfo(
     uint32_t oldPlaneId = prev_layerDataMappingInfo.count(layer) != 0 &&
                     prev_layerDataMappingInfo[layer].dppIdx == index
             ? prev_layerDataMappingInfo[layer].planeId
-            : UINT_MAX;
+            : LayerMappingInfo::kPlaneIdNone;
     layerDataMappingInfo.insert(std::make_pair(layer, LayerMappingInfo{ index, oldPlaneId }));
 
     return NO_ERROR;
@@ -736,6 +736,16 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
     return ret;
 }
 
+int32_t ExynosPrimaryDisplayModule::resetColorMappingInfo(ExynosMPPSource* mppSrc) {
+    if (mDisplaySceneInfo.layerDataMappingInfo.count(mppSrc) == 0) {
+        return -EINVAL;
+    }
+
+    mDisplaySceneInfo.layerDataMappingInfo[mppSrc].planeId =
+            DisplaySceneInfo::LayerMappingInfo::kPlaneIdNone;
+
+    return NO_ERROR;
+}
 int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 {
     int ret = NO_ERROR;
