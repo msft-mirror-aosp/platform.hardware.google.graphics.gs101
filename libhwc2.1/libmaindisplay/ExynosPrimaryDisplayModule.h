@@ -116,6 +116,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 HwcDimmingStage *outDimmingStage = nullptr) override;
         virtual int deliverWinConfigData();
         virtual int32_t updateColorConversionInfo();
+        virtual int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc);
         virtual int32_t updatePresentColorConversionInfo();
         virtual bool checkRrCompensationEnabled() {
             const DisplayType display = getDisplayTypeFromIndex(mIndex);
@@ -148,6 +149,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                     uint32_t dppIdx;
                     // assigned drm plane id in last color setting update
                     uint32_t planeId;
+                    static constexpr uint32_t kPlaneIdNone = std::numeric_limits<uint32_t>::max();
                 };
                 bool colorSettingChanged = false;
                 bool displaySettingDelivered = false;
