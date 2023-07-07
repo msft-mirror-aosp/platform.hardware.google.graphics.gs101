@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef EXYNOS_EXTERNAL_DISPLAY_MODULE_H
-#define EXYNOS_EXTERNAL_DISPLAY_MODULE_H
 
-#include "ExynosDisplay.h"
-#include "ExynosExternalDisplay.h"
+#ifndef HISTOGRAM_H_
+#define HISTOGRAM_H_
 
-namespace gs101 {
+#include <aidl/com/google/hardware/pixel/display/HistogramPos.h>
 
-class ExynosExternalDisplayModule : public ExynosExternalDisplay {
-    public:
-        ExynosExternalDisplayModule(uint32_t index, ExynosDevice* device,
-                                    const std::string& displayName);
-        ~ExynosExternalDisplayModule();
-        virtual int32_t validateWinConfigData();
+#include "histogram/HistogramInfo.h"
+#include "histogram/histogram_control.h"
+using HistogramPos = ::aidl::com::google::hardware::pixel::display::HistogramPos;
+
+class IDLHistogram : public HistogramInfo {
+public:
+    IDLHistogram() : HistogramInfo(HistogramType::HISTOGRAM_HIDL) {}
+    virtual ~IDLHistogram() {}
+    virtual void setHistogramPos(HistogramPos pos) {}
 };
 
-}  // namespace gs101
-
-#endif
+#endif // HISTOGRAM_H_
