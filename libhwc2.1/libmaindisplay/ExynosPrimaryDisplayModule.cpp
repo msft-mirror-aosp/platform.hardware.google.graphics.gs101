@@ -346,6 +346,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
             return ret;
         }
 
+        layerColorData.is_client_target = true;
         layerNum++;
     }
 
@@ -374,6 +375,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
             return ret;
         }
 
+        layerColorData.is_client_target = false;
         layerNum++;
     }
 
