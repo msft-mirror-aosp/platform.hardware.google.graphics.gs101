@@ -759,6 +759,10 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
     if (refresh_rate > 0) {
         mDisplaySceneInfo.displayScene.refresh_rate = refresh_rate;
     }
+    auto operation_rate = moduleDisplayInterface->getOperationRate();
+    if (operation_rate > 0) {
+        mDisplaySceneInfo.displayScene.operation_rate = static_cast<uint32_t>(operation_rate);
+    }
 
     mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
     mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
