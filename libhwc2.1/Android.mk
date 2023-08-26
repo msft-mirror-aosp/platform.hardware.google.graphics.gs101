@@ -15,6 +15,7 @@
 LOCAL_SRC_FILES += \
 	../../$(TARGET_BOARD_PLATFORM)/libhwc2.1/libcolormanager/DisplayColorModule.cpp \
 	../../$(TARGET_BOARD_PLATFORM)/libhwc2.1/libdevice/ExynosDeviceModule.cpp \
+	../../$(TARGET_BOARD_PLATFORM)/libhwc2.1/libdevice/HistogramController.cpp \
 	../../$(TARGET_BOARD_PLATFORM)/libhwc2.1/libmaindisplay/ExynosPrimaryDisplayModule.cpp \
 	../../$(TARGET_BOARD_PLATFORM)/libhwc2.1/libresource/ExynosMPPModule.cpp \
 	../../$(TARGET_BOARD_PLATFORM)/libhwc2.1/libresource/ExynosResourceManagerModule.cpp	\
