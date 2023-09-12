@@ -708,6 +708,7 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
         return ret;
     }
 
+    updateBrightnessState();
     /* clear flag and layer mapping info before setting */
     mDisplaySceneInfo.reset();
 
