@@ -301,7 +301,7 @@ int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
 }
 
 int32_t ExynosPrimaryDisplayModule::updateBrightnessTable() {
-    const IBrightnessTable* table = nullptr;
+    std::unique_ptr<const IBrightnessTable> table;
     auto displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         ALOGE("%s displaycolor interface not available!", __func__);
@@ -708,6 +708,7 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
         return ret;
     }
 
+    updateBrightnessState();
     /* clear flag and layer mapping info before setting */
     mDisplaySceneInfo.reset();
 
