@@ -976,7 +976,9 @@ uint32_t ExynosPrimaryDisplayModule::getAtcLuxMapIndex(std::vector<atc_lux_map> 
 int32_t ExynosPrimaryDisplayModule::setAtcStrength(uint32_t strength) {
     mAtcStrength.value.store(strength);
     if (mAtcStrength.value.is_dirty()) {
-        if (writeIntToFile(mAtcStrength.node, mAtcStrength.value.get()) != NO_ERROR) return -EPERM;
+        if (writeIntToFile(mAtcStrength.node.c_str(), mAtcStrength.value.get()) != NO_ERROR) {
+            return -EPERM;
+        }
         mAtcStrength.value.clear_dirty();
     }
     return NO_ERROR;
@@ -985,7 +987,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcStrength(uint32_t strength) {
 int32_t ExynosPrimaryDisplayModule::setAtcAmbientLight(uint32_t ambient_light) {
     mAtcAmbientLight.value.store(ambient_light);
     if (mAtcAmbientLight.value.is_dirty()) {
-        if (writeIntToFile(mAtcAmbientLight.node, mAtcAmbientLight.value.get()) != NO_ERROR)
+        if (writeIntToFile(mAtcAmbientLight.node.c_str(), mAtcAmbientLight.value.get()) != NO_ERROR)
             return -EPERM;
         mAtcAmbientLight.value.clear_dirty();
     }
@@ -1004,7 +1006,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
         for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++) {
             mAtcSubSetting[it->first.c_str()].value.store(mode.sub_setting[it->first.c_str()]);
             if (mAtcSubSetting[it->first.c_str()].value.is_dirty()) {
-                if (writeIntToFile(mAtcSubSetting[it->first.c_str()].node,
+                if (writeIntToFile(mAtcSubSetting[it->first.c_str()].node.c_str(),
                                    mAtcSubSetting[it->first.c_str()].value.get()) != NO_ERROR)
                     return -EPERM;
                 mAtcSubSetting[it->first.c_str()].value.clear_dirty();
@@ -1166,7 +1168,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcStDimming(uint32_t value) {
 int32_t ExynosPrimaryDisplayModule::setAtcEnable(bool enable) {
     mAtcEnable.value.store(enable);
     if (mAtcEnable.value.is_dirty()) {
-        if (writeIntToFile(mAtcEnable.node, enable) != NO_ERROR) return -EPERM;
+        if (writeIntToFile(mAtcEnable.node.c_str(), enable) != NO_ERROR) return -EPERM;
         mAtcEnable.value.clear_dirty();
     }
     return NO_ERROR;
