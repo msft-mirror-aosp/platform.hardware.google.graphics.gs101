@@ -18,6 +18,6 @@
 
 class HistogramController : public HistogramDevice {
 public:
-    HistogramController(ExynosDisplay *display) : HistogramDevice(display, 1, {}) {}
+    HistogramController(ExynosDisplay* display) : HistogramDevice(display, 1, {}) {}
     virtual void initSupportSamplePosList() override;
 };
