@@ -29,10 +29,9 @@ ExynosDeviceModule::ExynosDeviceModule() : ExynosDevice(), mDisplayColorLoader(D
     std::vector<displaycolor::DisplayInfo> display_info;
     for (uint32_t i = 0; i < mDisplays.size(); i++) {
         ExynosDisplay* display = mDisplays[i];
-        ExynosDisplayDrmInterfaceModule* moduleDisplayInterface =
-                (ExynosDisplayDrmInterfaceModule*)(display->mDisplayInterface.get());
-
         if (display->mType == HWC_DISPLAY_PRIMARY) {
+            ExynosDisplayDrmInterfaceModule* moduleDisplayInterface =
+                    (ExynosDisplayDrmInterfaceModule*)(display->mDisplayInterface.get());
             moduleDisplayInterface->getDisplayInfo(display_info);
         }
     }
