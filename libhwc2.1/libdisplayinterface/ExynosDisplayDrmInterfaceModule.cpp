@@ -442,8 +442,8 @@ void ExynosDisplayDrmInterfaceModule::getDisplayInfo(
         std::vector<displaycolor::DisplayInfo> &display_info) {
     displaycolor::DisplayInfo disp_info;
 
-    disp_info.brightness_ranges = mExynosDisplay->mBrightnessController->getBrightnessRanges();
     if (mExynosDisplay->mType == HWC_DISPLAY_PRIMARY) {
+        disp_info.brightness_ranges = mExynosDisplay->mBrightnessController->getBrightnessRanges();
         disp_info.panel_name = GetPanelName();
         disp_info.panel_serial = GetPanelSerial();
         if (mExynosDisplay->mIndex == 0)
