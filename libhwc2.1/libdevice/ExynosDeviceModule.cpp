@@ -23,7 +23,8 @@ extern struct exynos_hwc_control exynosHWCControl;
 
 using namespace gs101;
 
-ExynosDeviceModule::ExynosDeviceModule() : ExynosDevice(), mDisplayColorLoader(DISPLAY_COLOR_LIB) {
+ExynosDeviceModule::ExynosDeviceModule(bool isVrrApiSupported)
+      : ExynosDevice(isVrrApiSupported), mDisplayColorLoader(DISPLAY_COLOR_LIB) {
     exynosHWCControl.skipStaticLayers = false;
 
     std::vector<displaycolor::DisplayInfo> display_info;
