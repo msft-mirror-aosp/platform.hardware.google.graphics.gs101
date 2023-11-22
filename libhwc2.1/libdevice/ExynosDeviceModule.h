@@ -27,7 +27,7 @@ namespace gs101 {
 class ExynosDeviceModule : public ExynosDevice {
     using GsInterfaceType = gs::ColorDrmBlobFactory::GsInterfaceType;
     public:
-        ExynosDeviceModule();
+        ExynosDeviceModule(bool isVrrApiSupported);
         virtual ~ExynosDeviceModule();
 
         GsInterfaceType* getDisplayColorInterface() { return mDisplayColorInterface; }
