@@ -57,7 +57,7 @@ public:
 
     HistogramInfo(HistogramType type) { mHistogramType = type; }
     virtual ~HistogramInfo() {}
-    virtual void setHistogramPos(HistogramPos pos) = 0;
+    virtual void setHistogramPos(const HistogramPos& pos) = 0;
     virtual void callbackHistogram(char16_t* bin) = 0;
     std::mutex mSetHistInfoMutex;
 
