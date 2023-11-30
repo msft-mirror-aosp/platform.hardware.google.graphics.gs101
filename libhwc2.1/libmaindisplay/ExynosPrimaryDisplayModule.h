@@ -248,12 +248,6 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
             return change;
         }
 
-        size_t getNumOfDpp() {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
-            GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-            return displayColorInterface->GetPipelineData(display)->Dpp().size();
-        };
-
         const GsInterfaceType::IDqe& getDqe()
         {
             const DisplayType display = getDisplayTypeFromIndex(mIndex);
