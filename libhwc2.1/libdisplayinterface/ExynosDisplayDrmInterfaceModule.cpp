@@ -465,8 +465,7 @@ void ExynosDisplayDrmInterfaceModule::getDisplayInfo(
 const std::string ExynosDisplayDrmInterfaceModule::GetPanelInfo(const std::string &sysfs_rel,
                                                                 char delim) {
     ExynosPrimaryDisplayModule* display = (ExynosPrimaryDisplayModule*)mExynosDisplay;
-    const DisplayType type = display->getBuiltInDisplayType();
-    const std::string &sysfs = display->getPanelSysfsPath(type);
+    const std::string& sysfs = display->getPanelSysfsPath();
 
     if (sysfs.empty()) {
         return "";
