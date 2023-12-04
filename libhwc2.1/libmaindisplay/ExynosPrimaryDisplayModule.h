@@ -119,7 +119,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         virtual int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc);
         virtual int32_t updatePresentColorConversionInfo();
         virtual bool checkRrCompensationEnabled() {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
+            const DisplayType display = getDcDisplayType();
             GsInterfaceType* displayColorInterface = getDisplayColorInterface();
             return displayColorInterface
                 ? displayColorInterface->IsRrCompensationEnabled(display)
@@ -250,13 +250,10 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
 
         const GsInterfaceType::IDqe& getDqe()
         {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
+            const DisplayType display = getDcDisplayType();
             GsInterfaceType* displayColorInterface = getDisplayColorInterface();
             return displayColorInterface->GetPipelineData(display)->Dqe();
         };
-
-        // primary or secondary
-        DisplayType getBuiltInDisplayType() { return getDisplayTypeFromIndex(mIndex); }
 
         int32_t updateBrightnessTable();
 
