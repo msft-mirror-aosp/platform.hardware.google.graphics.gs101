@@ -54,9 +54,6 @@ int32_t ExynosDisplayDrmInterfaceModule::initDrmDevice(DrmDevice *drmDevice)
     if ((ret = ExynosDisplayDrmInterface::initDrmDevice(drmDevice)) != NO_ERROR)
         return ret;
 
-    if (isPrimary() == false)
-        return ret;
-
     mOldDqeBlobs.init(drmDevice);
 
     initOldDppBlobs(drmDevice);
