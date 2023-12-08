@@ -60,7 +60,12 @@ public:
 
     const GsInterfaceType::IDqe& getDqe();
 
+    int32_t updateColorConversionInfo();
+    int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc);
+
 private:
+    int32_t setLayersColorData();
+
     ExynosDisplay* mExynosDisplay;
     ExynosDeviceModule* mDevice;
     DisplaySceneInfo mDisplaySceneInfo;

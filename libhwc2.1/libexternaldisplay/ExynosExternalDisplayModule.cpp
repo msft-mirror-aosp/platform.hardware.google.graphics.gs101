@@ -93,3 +93,11 @@ int32_t ExynosExternalDisplayModule::setColorModeWithRenderIntent(int32_t mode, 
 int32_t ExynosExternalDisplayModule::setColorTransform(const float* matrix, int32_t hint) {
     return mColorManager->setColorTransform(matrix, hint);
 }
+
+int32_t ExynosExternalDisplayModule::updateColorConversionInfo() {
+    return mColorManager->updateColorConversionInfo();
+}
+
+int32_t ExynosExternalDisplayModule::resetColorMappingInfo(ExynosMPPSource* mppSrc) {
+    return mColorManager->resetColorMappingInfo(mppSrc);
+}
