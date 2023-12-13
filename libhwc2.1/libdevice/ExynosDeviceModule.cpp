@@ -17,6 +17,7 @@
 #include "ExynosDeviceModule.h"
 
 #include "ExynosDisplayDrmInterfaceModule.h"
+#include "ExynosPrimaryDisplayModule.h"
 
 extern struct exynos_hwc_control exynosHWCControl;
 
@@ -36,6 +37,13 @@ ExynosDeviceModule::ExynosDeviceModule() : ExynosDevice(), mDisplayColorLoader(D
         }
     }
     initDisplayColor(display_info);
+    for (uint32_t i = 0; i < mDisplays.size(); i++) {
+        ExynosDisplay* display = mDisplays[i];
+        if (display->mType == HWC_DISPLAY_PRIMARY) {
+            ExynosPrimaryDisplayModule* modulePrimaryDisplay = (ExynosPrimaryDisplayModule*)display;
+            modulePrimaryDisplay->updateBrightnessTable();
+        }
+    }
 }
 
 ExynosDeviceModule::~ExynosDeviceModule() {
