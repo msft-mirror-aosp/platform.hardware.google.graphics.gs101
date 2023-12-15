@@ -127,8 +127,6 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 : false;
         }
 
-        virtual bool isColorCalibratedByDevice();
-
         virtual int32_t getColorAdjustedDbv(uint32_t &dbv_adj);
 
         virtual void initLbe();
