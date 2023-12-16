@@ -42,12 +42,6 @@ mpp_phycal_type_t getMPPTypeFromDPPChannel(uint32_t channel) {
     return MPP_P_TYPE_MAX;
 }
 
-// enable map layerDataMappingInfo comparison in needDisplayColorSetting()
-inline bool operator==(const ExynosPrimaryDisplayModule::DisplaySceneInfo::LayerMappingInfo &lm1,
-                       const ExynosPrimaryDisplayModule::DisplaySceneInfo::LayerMappingInfo &lm2) {
-    return lm1.dppIdx == lm2.dppIdx && lm1.planeId == lm2.planeId;
-}
-
 ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice* device,
                                                        const std::string& displayName)
       : ExynosPrimaryDisplay(index, device, displayName) {
@@ -125,7 +119,7 @@ int32_t ExynosPrimaryDisplayModule::getColorModes(
         uint32_t* outNumModes, int32_t* outModes)
 {
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -155,7 +149,7 @@ int32_t ExynosPrimaryDisplayModule::setColorMode(int32_t mode)
 {
     ALOGD("%s: mode(%d)", __func__, mode);
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -179,7 +173,7 @@ int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
         uint32_t* outNumIntents, int32_t* outIntents)
 {
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -216,7 +210,7 @@ int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
         int32_t intent)
 {
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -280,7 +274,7 @@ int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
         return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
     }
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     hwc::PixelFormat pixelFormat;
     hwc::Dataspace dataspace;
     bool dimming_linear;
@@ -308,7 +302,7 @@ int32_t ExynosPrimaryDisplayModule::updateBrightnessTable() {
         return HWC2_ERROR_NO_RESOURCES;
     }
 
-    auto displayType = getBuiltInDisplayType();
+    auto displayType = getDcDisplayType();
     auto ret = displayColorInterface->GetBrightnessTable(displayType, table);
     if (ret != android::OK) {
         ALOGE("%s brightness table not available!", __func__);
@@ -397,7 +391,7 @@ bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
         return false;
 
     uint32_t index =  mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     auto size = displayColorInterface->GetPipelineData(display)->Dpp().size();
     if (index >= size) {
         DISPLAY_LOGE("%s: invalid dpp index(%d) dpp size(%zu)", __func__, index, size);
@@ -411,7 +405,7 @@ const ExynosPrimaryDisplayModule::GsInterfaceType::IDpp& ExynosPrimaryDisplayMod
         ExynosMPPSource* layer) {
     uint32_t index = mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     return displayColorInterface->GetPipelineData(display)->Dpp()[index].get();
 }
 
@@ -456,250 +450,6 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
     return ret;
 }
 
-LayerColorData& ExynosPrimaryDisplayModule::DisplaySceneInfo::getLayerColorDataInstance(
-        uint32_t index)
-{
-    size_t currentSize = displayScene.layer_data.size();
-    if (index >= currentSize) {
-        displayScene.layer_data.resize(currentSize+1);
-        colorSettingChanged = true;
-    }
-    return displayScene.layer_data[index];
-}
-
-int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerDataMappingInfo(
-        ExynosMPPSource* layer, uint32_t index)
-{
-    if (layerDataMappingInfo.count(layer) != 0) {
-        ALOGE("layer mapping is already inserted (layer: %p, index:%d)",
-                layer, index);
-        return -EINVAL;
-    }
-    // if assigned displaycolor dppIdx changes, do not reuse it (force plane color update).
-    uint32_t oldPlaneId = prev_layerDataMappingInfo.count(layer) != 0 &&
-                    prev_layerDataMappingInfo[layer].dppIdx == index
-            ? prev_layerDataMappingInfo[layer].planeId
-            : LayerMappingInfo::kPlaneIdNone;
-    layerDataMappingInfo.insert(std::make_pair(layer, LayerMappingInfo{ index, oldPlaneId }));
-
-    return NO_ERROR;
-}
-
-void ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerDataspace(
-        LayerColorData& layerColorData,
-        hwc::Dataspace dataspace)
-{
-    if (layerColorData.dataspace != dataspace) {
-        colorSettingChanged = true;
-        layerColorData.dataspace = dataspace;
-    }
-}
-
-void ExynosPrimaryDisplayModule::DisplaySceneInfo::disableLayerHdrStaticMetadata(
-        LayerColorData& layerColorData)
-{
-    if (layerColorData.static_metadata.is_valid) {
-        colorSettingChanged = true;
-        layerColorData.static_metadata.is_valid = false;
-    }
-}
-
-void ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerHdrStaticMetadata(
-        LayerColorData& layerColorData,
-        const ExynosHdrStaticInfo &exynosHdrStaticInfo)
-{
-    if (layerColorData.static_metadata.is_valid == false) {
-        colorSettingChanged = true;
-        layerColorData.static_metadata.is_valid = true;
-    }
-
-    updateInfoSingleVal(layerColorData.static_metadata.display_red_primary_x,
-            exynosHdrStaticInfo.sType1.mR.x);
-    updateInfoSingleVal(layerColorData.static_metadata.display_red_primary_y,
-            exynosHdrStaticInfo.sType1.mR.y);
-    updateInfoSingleVal(layerColorData.static_metadata.display_green_primary_x,
-            exynosHdrStaticInfo.sType1.mG.x);
-    updateInfoSingleVal(layerColorData.static_metadata.display_green_primary_y,
-            exynosHdrStaticInfo.sType1.mG.y);
-    updateInfoSingleVal(layerColorData.static_metadata.display_blue_primary_x,
-            exynosHdrStaticInfo.sType1.mB.x);
-    updateInfoSingleVal(layerColorData.static_metadata.display_blue_primary_y,
-            exynosHdrStaticInfo.sType1.mB.y);
-    updateInfoSingleVal(layerColorData.static_metadata.white_point_x,
-            exynosHdrStaticInfo.sType1.mW.x);
-    updateInfoSingleVal(layerColorData.static_metadata.white_point_y,
-            exynosHdrStaticInfo.sType1.mW.y);
-    updateInfoSingleVal(layerColorData.static_metadata.max_luminance,
-            exynosHdrStaticInfo.sType1.mMaxDisplayLuminance);
-    updateInfoSingleVal(layerColorData.static_metadata.min_luminance,
-            exynosHdrStaticInfo.sType1.mMinDisplayLuminance);
-    updateInfoSingleVal(layerColorData.static_metadata.max_content_light_level,
-            exynosHdrStaticInfo.sType1.mMaxContentLightLevel);
-    updateInfoSingleVal(
-            layerColorData.static_metadata.max_frame_average_light_level,
-            exynosHdrStaticInfo.sType1.mMaxFrameAverageLightLevel);
-}
-
-void ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorTransform(
-        LayerColorData& layerColorData,
-        std::array<float, TRANSFORM_MAT_SIZE> &matrix)
-{
-    updateInfoSingleVal(layerColorData.matrix, matrix);
-}
-
-void ExynosPrimaryDisplayModule::DisplaySceneInfo::disableLayerHdrDynamicMetadata(
-        LayerColorData& layerColorData)
-{
-    if (layerColorData.dynamic_metadata.is_valid) {
-        colorSettingChanged = true;
-        layerColorData.dynamic_metadata.is_valid = false;
-    }
-}
-
-void ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerHdrDynamicMetadata(
-        LayerColorData& layerColorData,
-        const ExynosHdrDynamicInfo &exynosHdrDynamicInfo)
-{
-    if (layerColorData.dynamic_metadata.is_valid == false) {
-        colorSettingChanged = true;
-        layerColorData.dynamic_metadata.is_valid = true;
-    }
-    updateInfoSingleVal(layerColorData.dynamic_metadata.display_maximum_luminance,
-                        exynosHdrDynamicInfo.data.targeted_system_display_maximum_luminance);
-
-    if (!std::equal(layerColorData.dynamic_metadata.maxscl.begin(),
-                    layerColorData.dynamic_metadata.maxscl.end(),
-                    exynosHdrDynamicInfo.data.maxscl[0])) {
-        colorSettingChanged = true;
-        for (uint32_t i = 0 ; i < layerColorData.dynamic_metadata.maxscl.size(); i++) {
-          layerColorData.dynamic_metadata.maxscl[i] = exynosHdrDynamicInfo.data.maxscl[0][i];
-        }
-    }
-    static constexpr uint32_t DYNAMIC_META_DAT_SIZE = 15;
-
-    updateInfoVectorVal(layerColorData.dynamic_metadata.maxrgb_percentages,
-                        exynosHdrDynamicInfo.data.maxrgb_percentages[0], DYNAMIC_META_DAT_SIZE);
-    updateInfoVectorVal(layerColorData.dynamic_metadata.maxrgb_percentiles,
-                        exynosHdrDynamicInfo.data.maxrgb_percentiles[0], DYNAMIC_META_DAT_SIZE);
-    updateInfoSingleVal(layerColorData.dynamic_metadata.tm_flag,
-                        exynosHdrDynamicInfo.data.tone_mapping.tone_mapping_flag[0]);
-    updateInfoSingleVal(layerColorData.dynamic_metadata.tm_knee_x,
-                        exynosHdrDynamicInfo.data.tone_mapping.knee_point_x[0]);
-    updateInfoSingleVal(layerColorData.dynamic_metadata.tm_knee_y,
-                        exynosHdrDynamicInfo.data.tone_mapping.knee_point_y[0]);
-    updateInfoVectorVal(layerColorData.dynamic_metadata.bezier_curve_anchors,
-                        exynosHdrDynamicInfo.data.tone_mapping.bezier_curve_anchors[0],
-                        DYNAMIC_META_DAT_SIZE);
-}
-
-int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setClientCompositionColorData(
-        const ExynosCompositionInfo &clientCompositionInfo, LayerColorData& layerData,
-        float dimSdrRatio)
-{
-    layerData.dim_ratio = 1.0f;
-    setLayerDataspace(layerData,
-                      static_cast<hwc::Dataspace>(clientCompositionInfo.mDataSpace));
-    disableLayerHdrStaticMetadata(layerData);
-    disableLayerHdrDynamicMetadata(layerData);
-
-    if (dimSdrRatio != 1.0) {
-        std::array<float, TRANSFORM_MAT_SIZE> scaleMatrix = {
-            dimSdrRatio, 0.0, 0.0, 0.0,
-            0.0, dimSdrRatio, 0.0, 0.0,
-            0.0, 0.0, dimSdrRatio, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        };
-        setLayerColorTransform(layerData, scaleMatrix);
-    } else {
-        static std::array<float, TRANSFORM_MAT_SIZE> defaultMatrix {
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        };
-        setLayerColorTransform(layerData, defaultMatrix);
-    }
-
-    return NO_ERROR;
-}
-
-int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
-        LayerColorData& layerData, ExynosLayer* layer, float dimSdrRatio)
-{
-    layerData.is_solid_color_layer = layer->isDimLayer();
-    layerData.solid_color.r = layer->mColor.r;
-    layerData.solid_color.g = layer->mColor.g;
-    layerData.solid_color.b = layer->mColor.b;
-    layerData.solid_color.a = layer->mColor.a;
-    layerData.dim_ratio = layer->mPreprocessedInfo.sdrDimRatio;
-    setLayerDataspace(layerData,
-            static_cast<hwc::Dataspace>(layer->mDataSpace));
-    if (layer->mIsHdrLayer && layer->getMetaParcel() != nullptr) {
-        if (layer->getMetaParcel()->eType & VIDEO_INFO_TYPE_HDR_STATIC)
-            setLayerHdrStaticMetadata(layerData, layer->getMetaParcel()->sHdrStaticInfo);
-        else
-            disableLayerHdrStaticMetadata(layerData);
-
-        if (layer->getMetaParcel()->eType & VIDEO_INFO_TYPE_HDR_DYNAMIC)
-            setLayerHdrDynamicMetadata(layerData, layer->getMetaParcel()->sHdrDynamicInfo);
-        else
-            disableLayerHdrDynamicMetadata(layerData);
-    } else {
-        disableLayerHdrStaticMetadata(layerData);
-        disableLayerHdrDynamicMetadata(layerData);
-    }
-
-    static std::array<float, TRANSFORM_MAT_SIZE> defaultMatrix {
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
-
-    if (dimSdrRatio == 1.0 || layer->mIsHdrLayer) {
-        if (layer->mLayerColorTransform.enable)
-            setLayerColorTransform(layerData,
-                    layer->mLayerColorTransform.mat);
-        else
-            setLayerColorTransform(layerData,
-                    defaultMatrix);
-    } else {
-        if (layer->mLayerColorTransform.enable) {
-            std::array<float, TRANSFORM_MAT_SIZE> scaleMatrix =
-                layer->mLayerColorTransform.mat;
-
-            // scale coeffs
-            scaleMatrix[0] *= dimSdrRatio;
-            scaleMatrix[1] *= dimSdrRatio;
-            scaleMatrix[2] *= dimSdrRatio;
-            scaleMatrix[4] *= dimSdrRatio;
-            scaleMatrix[5] *= dimSdrRatio;
-            scaleMatrix[6] *= dimSdrRatio;
-            scaleMatrix[8] *= dimSdrRatio;
-            scaleMatrix[9] *= dimSdrRatio;
-            scaleMatrix[10] *= dimSdrRatio;
-
-            // scale offsets
-            scaleMatrix[12] *= dimSdrRatio;
-            scaleMatrix[13] *= dimSdrRatio;
-            scaleMatrix[14] *= dimSdrRatio;
-
-            setLayerColorTransform(layerData, scaleMatrix);
-        } else {
-            std::array<float, TRANSFORM_MAT_SIZE> scaleMatrix = {
-                dimSdrRatio, 0.0, 0.0, 0.0,
-                0.0, dimSdrRatio, 0.0, 0.0,
-                0.0, 0.0, dimSdrRatio, 0.0,
-                0.0, 0.0, 0.0, 1.0
-            };
-
-            setLayerColorTransform(layerData, scaleMatrix);
-        }
-    }
-
-    return NO_ERROR;
-}
-
 int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 {
     int ret = 0;
@@ -727,7 +477,7 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
     if (hwcCheckDebugMessages(eDebugColorManagement))
         mDisplaySceneInfo.printDisplayScene();
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->Update(display, mDisplaySceneInfo.displayScene)) != 0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
         return ret;
@@ -767,7 +517,7 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 
     mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
     mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->UpdatePresent(display, mDisplaySceneInfo.displayScene)) !=
         0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
@@ -783,87 +533,9 @@ int32_t ExynosPrimaryDisplayModule::getColorAdjustedDbv(uint32_t &dbv_adj) {
         return NO_ERROR;
     }
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     dbv_adj = displayColorInterface->GetPipelineData(display)->Panel().GetAdjustedBrightnessLevel();
     return NO_ERROR;
-}
-
-bool ExynosPrimaryDisplayModule::DisplaySceneInfo::needDisplayColorSetting()
-{
-    /* TODO: Check if we can skip color setting */
-    /* For now, propage setting every frame */
-    return true;
-
-    if (colorSettingChanged)
-        return true;
-    if (prev_layerDataMappingInfo != layerDataMappingInfo)
-        return true;
-
-    return false;
-}
-
-void ExynosPrimaryDisplayModule::DisplaySceneInfo::printDisplayScene()
-{
-    ALOGD("======================= DisplayScene info ========================");
-    ALOGD("dpu_bit_depth: %d", static_cast<uint32_t>(displayScene.dpu_bit_depth));
-    ALOGD("color_mode: %d", static_cast<uint32_t>(displayScene.color_mode));
-    ALOGD("render_intent: %d", static_cast<uint32_t>(displayScene.render_intent));
-    ALOGD("matrix");
-    for (uint32_t i = 0; i < 16; (i += 4)) {
-        ALOGD("%f, %f, %f, %f",
-                displayScene.matrix[i], displayScene.matrix[i+1],
-                displayScene.matrix[i+2], displayScene.matrix[i+3]);
-    }
-    ALOGD("layer: %zu ++++++",
-            displayScene.layer_data.size());
-    for (uint32_t i = 0; i < displayScene.layer_data.size(); i++) {
-        ALOGD("layer[%d] info", i);
-        printLayerColorData(displayScene.layer_data[i]);
-    }
-
-    ALOGD("layerDataMappingInfo: %zu ++++++",
-            layerDataMappingInfo.size());
-    for (auto layer : layerDataMappingInfo) {
-        ALOGD("[layer: %p] [%d, %d]", layer.first, layer.second.dppIdx, layer.second.planeId);
-    }
-}
-
-void ExynosPrimaryDisplayModule::DisplaySceneInfo::printLayerColorData(
-    const LayerColorData& layerData)
-{
-    ALOGD("dataspace: 0x%8x", static_cast<uint32_t>(layerData.dataspace));
-    ALOGD("matrix");
-    for (uint32_t i = 0; i < 16; (i += 4)) {
-        ALOGD("%f, %f, %f, %f",
-                layerData.matrix[i], layerData.matrix[i+1],
-                layerData.matrix[i+2], layerData.matrix[i+3]);
-    }
-    ALOGD("static_metadata.is_valid(%d)", layerData.static_metadata.is_valid);
-    if (layerData.static_metadata.is_valid) {
-        ALOGD("\tdisplay_red_primary(%d, %d)",
-                layerData.static_metadata.display_red_primary_x,
-                layerData.static_metadata.display_red_primary_y);
-        ALOGD("\tdisplay_green_primary(%d, %d)",
-                layerData.static_metadata.display_green_primary_x,
-                layerData.static_metadata.display_green_primary_y);
-        ALOGD("\tdisplay_blue_primary(%d, %d)",
-                layerData.static_metadata.display_blue_primary_x,
-                layerData.static_metadata.display_blue_primary_y);
-        ALOGD("\twhite_point(%d, %d)",
-                layerData.static_metadata.white_point_x,
-                layerData.static_metadata.white_point_y);
-    }
-    ALOGD("dynamic_metadata.is_valid(%d)", layerData.dynamic_metadata.is_valid);
-    if (layerData.dynamic_metadata.is_valid) {
-        ALOGD("\tdisplay_maximum_luminance: %d",
-                layerData.dynamic_metadata.display_maximum_luminance);
-        ALOGD("\tmaxscl(%d, %d, %d)", layerData.dynamic_metadata.maxscl[0],
-                layerData.dynamic_metadata.maxscl[1],
-                layerData.dynamic_metadata.maxscl[2]);
-        ALOGD("\ttm_flag(%d)", layerData.dynamic_metadata.tm_flag);
-        ALOGD("\ttm_knee_x(%d)", layerData.dynamic_metadata.tm_knee_x);
-        ALOGD("\ttm_knee_y(%d)", layerData.dynamic_metadata.tm_knee_y);
-    }
 }
 
 bool ExynosPrimaryDisplayModule::parseAtcProfile() {
@@ -1121,7 +793,7 @@ PanelCalibrationStatus ExynosPrimaryDisplayModule::getPanelCalibrationStatus() {
         return PanelCalibrationStatus::UNCALIBRATED;
     }
 
-    auto displayType = getBuiltInDisplayType();
+    auto displayType = getDcDisplayType();
     auto calibrationInfo = displayColorInterface->GetCalibrationInfo(displayType);
 
     if (calibrationInfo.factory_cal_loaded) {
@@ -1217,7 +889,7 @@ bool ExynosPrimaryDisplayModule::isDisplaySwitched(int32_t mode, int32_t prevMod
 }
 
 bool ExynosPrimaryDisplayModule::isColorCalibratedByDevice() {
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     return displayColorInterface->GetCalibrationInfo(display).factory_cal_loaded;
 };

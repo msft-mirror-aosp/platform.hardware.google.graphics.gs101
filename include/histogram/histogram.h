@@ -27,7 +27,7 @@ class IDLHistogram : public HistogramInfo {
 public:
     IDLHistogram() : HistogramInfo(HistogramType::HISTOGRAM_HIDL) {}
     virtual ~IDLHistogram() {}
-    virtual void setHistogramPos(HistogramPos pos) {}
+    virtual void setHistogramPos(const HistogramPos& pos) {}
 };
 
 #endif // HISTOGRAM_H_
