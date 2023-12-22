@@ -21,12 +21,24 @@
 
 namespace gs101 {
 
+class ColorManager;
+
 class ExynosExternalDisplayModule : public ExynosExternalDisplay {
     public:
         ExynosExternalDisplayModule(uint32_t index, ExynosDevice* device,
                                     const std::string& displayName);
         ~ExynosExternalDisplayModule();
         virtual int32_t validateWinConfigData();
+
+        int32_t getColorModes(uint32_t* outNumModes, int32_t* outModes) override;
+        int32_t setColorMode(int32_t mode) override;
+        int32_t getRenderIntents(int32_t mode, uint32_t* outNumIntents,
+                                 int32_t* outIntents) override;
+        int32_t setColorModeWithRenderIntent(int32_t mode, int32_t intent) override;
+        int32_t setColorTransform(const float* matrix, int32_t hint) override;
+
+    private:
+        std::unique_ptr<ColorManager> mColorManager;
 };
 
 }  // namespace gs101

@@ -16,6 +16,7 @@
 #ifndef EXYNOS_DISPLAY_MODULE_H
 #define EXYNOS_DISPLAY_MODULE_H
 
+#include "ColorManager.h"
 #include "DisplaySceneInfo.h"
 #include "ExynosDeviceModule.h"
 #include "ExynosDisplay.h"
@@ -103,15 +104,12 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         void usePreDefinedWindow(bool use);
         virtual int32_t validateWinConfigData();
         void doPreProcessing();
-        virtual int32_t getColorModes(
-                uint32_t* outNumModes,
-                int32_t* outModes);
-        virtual int32_t setColorMode(int32_t mode);
+        virtual int32_t getColorModes(uint32_t* outNumModes, int32_t* outModes) override;
+        virtual int32_t setColorMode(int32_t mode) override;
         virtual int32_t getRenderIntents(int32_t mode, uint32_t* outNumIntents,
-                int32_t* outIntents);
-        virtual int32_t setColorModeWithRenderIntent(int32_t mode,
-                int32_t intent);
-        virtual int32_t setColorTransform(const float* matrix, int32_t hint);
+                                         int32_t* outIntents) override;
+        virtual int32_t setColorModeWithRenderIntent(int32_t mode, int32_t intent) override;
+        virtual int32_t setColorTransform(const float* matrix, int32_t hint) override;
         virtual int32_t getClientTargetProperty(
                 hwc_client_target_property_t* outClientTargetProperty,
                 HwcDimmingStage *outDimmingStage = nullptr) override;
@@ -149,7 +147,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         /* Check if layer's assigned plane id has changed, save the new planeId.
          * call only if hasDppForLayer is true */
         bool checkAndSaveLayerPlaneId(ExynosMPPSource* layer, uint32_t planeId) {
-            auto &info = mDisplaySceneInfo.layerDataMappingInfo[layer];
+            auto& info = getDisplaySceneInfo().layerDataMappingInfo[layer];
             bool change = info.planeId != planeId;
             info.planeId = planeId;
             return change;
@@ -166,7 +164,9 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
 
     private:
         int32_t setLayersColorData();
-        DisplaySceneInfo mDisplaySceneInfo;
+        std::unique_ptr<ColorManager> mColorManager;
+
+        DisplaySceneInfo& getDisplaySceneInfo() { return mColorManager->getDisplaySceneInfo(); }
 
         struct atc_lux_map {
             uint32_t lux;
