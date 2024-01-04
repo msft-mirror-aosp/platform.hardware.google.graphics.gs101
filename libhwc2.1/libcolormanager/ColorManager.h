@@ -58,6 +58,8 @@ public:
         return change;
     }
 
+    const GsInterfaceType::IDqe& getDqe();
+
 private:
     ExynosDisplay* mExynosDisplay;
     ExynosDeviceModule* mDevice;

@@ -195,4 +195,9 @@ int32_t ColorManager::getDppIndexForLayer(ExynosMPPSource* layer) {
     return static_cast<int32_t>(index);
 }
 
+const ColorManager::GsInterfaceType::IDqe& ColorManager::getDqe() {
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    return displayColorInterface->GetPipelineData(mExynosDisplay->getDcDisplayType())->Dqe();
+}
+
 } // namespace gs101

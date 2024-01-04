@@ -162,19 +162,17 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorBlob(
 
     return ret;
 }
+
 int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorSetting(
-        ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq)
-{
-    if (isPrimary() == false)
-        return NO_ERROR;
+        ExynosDisplayDrmInterface::DrmModeAtomicReq& drmReq) {
     if (!mForceDisplayColorSetting && !mColorSettingChanged)
         return NO_ERROR;
 
-    ExynosPrimaryDisplayModule* display =
-        (ExynosPrimaryDisplayModule*)mExynosDisplay;
+    ExynosDeviceModule* device = static_cast<ExynosDeviceModule*>(mExynosDisplay->mDevice);
+    gs101::ColorManager* colorManager = device->getDisplayColorManager(mExynosDisplay);
 
     int ret = NO_ERROR;
-    const typename GsInterfaceType::IDqe &dqe = display->getDqe();
+    const typename GsInterfaceType::IDqe& dqe = colorManager->getDqe();
 
     if ((mDrmCrtc->cgc_lut_property().id() != 0) &&
         (ret = setDisplayColorBlob(mDrmCrtc->cgc_lut_property(),

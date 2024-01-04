@@ -140,13 +140,6 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
             return displayColorInterface != nullptr;
         }
 
-        const GsInterfaceType::IDqe& getDqe()
-        {
-            const DisplayType display = getDcDisplayType();
-            GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-            return displayColorInterface->GetPipelineData(display)->Dqe();
-        };
-
         int32_t updateBrightnessTable();
 
         ColorManager* getColorManager() { return mColorManager.get(); }
