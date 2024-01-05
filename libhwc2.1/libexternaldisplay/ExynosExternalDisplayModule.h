@@ -26,6 +26,8 @@ namespace gs101 {
 class ColorManager;
 
 class ExynosExternalDisplayModule : public ExynosExternalDisplay {
+    using GsInterfaceType = gs::ColorDrmBlobFactory::GsInterfaceType;
+
 public:
     ExynosExternalDisplayModule(uint32_t index, ExynosDevice* device,
                                 const std::string& displayName);
@@ -43,8 +45,19 @@ public:
     int32_t updateColorConversionInfo() override;
     int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc) override;
 
+    bool mForceColorUpdate = false;
+    bool isForceColorUpdate() const { return mForceColorUpdate; }
+    void setForceColorUpdate(bool force) { mForceColorUpdate = force; }
+    int deliverWinConfigData() override;
+
 private:
     std::unique_ptr<ColorManager> mColorManager;
+
+    GsInterfaceType* getDisplayColorInterface() {
+        return mColorManager->getDisplayColorInterface();
+    }
+
+    DisplaySceneInfo& getDisplaySceneInfo() { return mColorManager->getDisplaySceneInfo(); }
 };
 
 }  // namespace gs101
