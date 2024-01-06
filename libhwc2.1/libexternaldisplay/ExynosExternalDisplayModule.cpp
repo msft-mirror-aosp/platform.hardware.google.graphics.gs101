@@ -28,9 +28,11 @@
 
 using namespace gs101;
 
-ExynosExternalDisplayModule::ExynosExternalDisplayModule(uint32_t index, ExynosDevice *device,
-                                                         const std::string &displayName)
-      : ExynosExternalDisplay(index, device, displayName) {}
+ExynosExternalDisplayModule::ExynosExternalDisplayModule(uint32_t index, ExynosDevice* device,
+                                                         const std::string& displayName)
+      : ExynosExternalDisplay(index, device, displayName) {
+    mColorManager = std::make_unique<ColorManager>(this, static_cast<ExynosDeviceModule*>(device));
+}
 
 ExynosExternalDisplayModule::~ExynosExternalDisplayModule ()
 {
@@ -69,4 +71,25 @@ int32_t ExynosExternalDisplayModule::validateWinConfigData()
         return NO_ERROR;
     else
         return -EINVAL;
+}
+
+int32_t ExynosExternalDisplayModule::getColorModes(uint32_t* outNumModes, int32_t* outModes) {
+    return mColorManager->getColorModes(outNumModes, outModes);
+}
+
+int32_t ExynosExternalDisplayModule::setColorMode(int32_t mode) {
+    return mColorManager->setColorMode(mode);
+}
+
+int32_t ExynosExternalDisplayModule::getRenderIntents(int32_t mode, uint32_t* outNumIntents,
+                                                      int32_t* outIntents) {
+    return mColorManager->getRenderIntents(mode, outNumIntents, outIntents);
+}
+
+int32_t ExynosExternalDisplayModule::setColorModeWithRenderIntent(int32_t mode, int32_t intent) {
+    return mColorManager->setColorModeWithRenderIntent(mode, intent);
+}
+
+int32_t ExynosExternalDisplayModule::setColorTransform(const float* matrix, int32_t hint) {
+    return mColorManager->setColorTransform(matrix, hint);
 }

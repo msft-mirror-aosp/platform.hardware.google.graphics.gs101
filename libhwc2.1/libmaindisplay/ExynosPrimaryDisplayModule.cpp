@@ -48,6 +48,7 @@ ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDev
 #ifdef FORCE_GPU_COMPOSITION
     exynosHWCControl.forceGpu = true;
 #endif
+    mColorManager = std::make_unique<ColorManager>(this, static_cast<ExynosDeviceModule*>(device));
 }
 
 ExynosPrimaryDisplayModule::~ExynosPrimaryDisplayModule () {
@@ -118,151 +119,30 @@ void ExynosPrimaryDisplayModule::doPreProcessing() {
 int32_t ExynosPrimaryDisplayModule::getColorModes(
         uint32_t* outNumModes, int32_t* outModes)
 {
-    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDcDisplayType();
-    const ColorModesMap colorModeMap = displayColorInterface == nullptr
-            ? ColorModesMap()
-            : displayColorInterface->ColorModesAndRenderIntents(display);
-    ALOGD("%s: size(%zu)", __func__, colorModeMap.size());
-    if (outModes == nullptr) {
-        *outNumModes = colorModeMap.size();
-        return HWC2_ERROR_NONE;
-    }
-    if (*outNumModes != colorModeMap.size()) {
-        DISPLAY_LOGE("%s: Invalid color mode size(%d), It should be(%zu)",
-                __func__, *outNumModes, colorModeMap.size());
-        return HWC2_ERROR_BAD_PARAMETER;
-    }
-
-    uint32_t index = 0;
-    for (const auto &it : colorModeMap)
-    {
-        outModes[index] = static_cast<int32_t>(it.first);
-        ALOGD("\tmode[%d] %d", index, outModes[index]);
-        index++;
-    }
-
-    return HWC2_ERROR_NONE;
+    return mColorManager->getColorModes(outNumModes, outModes);
 }
 
 int32_t ExynosPrimaryDisplayModule::setColorMode(int32_t mode)
 {
-    ALOGD("%s: mode(%d)", __func__, mode);
-    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDcDisplayType();
-    const ColorModesMap colorModeMap = displayColorInterface == nullptr
-            ? ColorModesMap()
-            : displayColorInterface->ColorModesAndRenderIntents(display);
-    hwc::ColorMode colorMode =
-        static_cast<hwc::ColorMode>(mode);
-    const auto it = colorModeMap.find(colorMode);
-    if (it == colorModeMap.end()) {
-        DISPLAY_LOGE("%s: Invalid color mode(%d)", __func__, mode);
-        return HWC2_ERROR_BAD_PARAMETER;
-    }
-    mDisplaySceneInfo.setColorMode(colorMode);
-
-    if (mColorMode != mode)
-        setGeometryChanged(GEOMETRY_DISPLAY_COLOR_MODE_CHANGED);
-    mColorMode = (android_color_mode_t)mode;
-
-    return HWC2_ERROR_NONE;
+    return mColorManager->setColorMode(mode);
 }
 
 int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
         uint32_t* outNumIntents, int32_t* outIntents)
 {
-    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDcDisplayType();
-    const ColorModesMap colorModeMap = displayColorInterface == nullptr
-            ? ColorModesMap()
-            : displayColorInterface->ColorModesAndRenderIntents(display);
-    ALOGD("%s, size(%zu)", __func__, colorModeMap.size());
-    hwc::ColorMode colorMode =
-        static_cast<hwc::ColorMode>(mode);
-    const auto it = colorModeMap.find(colorMode);
-    if (it == colorModeMap.end()) {
-        DISPLAY_LOGE("%s: Invalid color mode(%d)", __func__, mode);
-        return HWC2_ERROR_BAD_PARAMETER;
-    }
-    auto &renderIntents = it->second;
-    if (outIntents == NULL) {
-        *outNumIntents = renderIntents.size();
-        ALOGD("\tintent num(%zu)", renderIntents.size());
-        return HWC2_ERROR_NONE;
-    }
-    if (*outNumIntents != renderIntents.size()) {
-        DISPLAY_LOGE("%s: Invalid intent size(%d), It should be(%zu)",
-                __func__, *outNumIntents, renderIntents.size());
-        return HWC2_ERROR_BAD_PARAMETER;
-    }
-
-    for (uint32_t i = 0; i < renderIntents.size(); i++)
-    {
-        outIntents[i] = static_cast<uint32_t>(renderIntents[i]);
-        ALOGD("\tintent[%d] %d", i, outIntents[i]);
-    }
-
-    return HWC2_ERROR_NONE;
+    return mColorManager->getRenderIntents(mode, outNumIntents, outIntents);
 }
 
 int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
         int32_t intent)
 {
-    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDcDisplayType();
-    const ColorModesMap colorModeMap = displayColorInterface == nullptr
-            ? ColorModesMap()
-            : displayColorInterface->ColorModesAndRenderIntents(display);
-    hwc::ColorMode colorMode =
-        static_cast<hwc::ColorMode>(mode);
-    hwc::RenderIntent renderIntent =
-        static_cast<hwc::RenderIntent>(intent);
-
-    const auto mode_it = colorModeMap.find(colorMode);
-    if (mode_it == colorModeMap.end()) {
-        DISPLAY_LOGE("%s: Invalid color mode(%d)", __func__, mode);
-        return HWC2_ERROR_BAD_PARAMETER;
-    }
-
-    auto &renderIntents = mode_it->second;
-    auto intent_it = std::find(renderIntents.begin(),
-            renderIntents.end(), renderIntent);
-    if (intent_it == renderIntents.end()) {
-        DISPLAY_LOGE("%s: Invalid render intent(%d)", __func__, intent);
-        return HWC2_ERROR_BAD_PARAMETER;
-    }
-
-    mDisplaySceneInfo.setColorMode(colorMode);
-    mDisplaySceneInfo.setRenderIntent(renderIntent);
-
-    if (mColorMode != mode) {
-        ALOGD("%s: mode(%d), intent(%d)", __func__, mode, intent);
-        setGeometryChanged(GEOMETRY_DISPLAY_COLOR_MODE_CHANGED);
-    }
-    mColorMode = (android_color_mode_t)mode;
-
-    mBrightnessController->updateColorRenderIntent(intent);
-
-    return HWC2_ERROR_NONE;
+    return mColorManager->setColorModeWithRenderIntent(mode, intent);
 }
 
 int32_t ExynosPrimaryDisplayModule::setColorTransform(
         const float* matrix, int32_t hint)
 {
-    if ((hint < HAL_COLOR_TRANSFORM_IDENTITY) ||
-        (hint > HAL_COLOR_TRANSFORM_CORRECT_TRITANOPIA))
-        return HWC2_ERROR_BAD_PARAMETER;
-    if (mColorTransformHint != hint) {
-        ALOGI("%s:: %d -> %d", __func__, mColorTransformHint, hint);
-        setGeometryChanged(GEOMETRY_DISPLAY_COLOR_TRANSFORM_CHANGED);
-    }
-    mColorTransformHint = hint;
-#ifdef HWC_SUPPORT_COLOR_TRANSFORM
-    mDisplaySceneInfo.setColorTransform(matrix);
-#endif
-    return HWC2_ERROR_NONE;
-
+    return mColorManager->setColorTransform(matrix, hint);
 }
 
 int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
@@ -324,18 +204,18 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 
     // for client target
     {
-        LayerColorData& layerColorData = mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
+        LayerColorData& layerColorData = getDisplaySceneInfo().getLayerColorDataInstance(layerNum);
 
         /* set layer data mapping info */
-        if ((ret = mDisplaySceneInfo.setLayerDataMappingInfo(&mClientCompositionInfo, layerNum)) !=
-            NO_ERROR) {
+        if ((ret = getDisplaySceneInfo().setLayerDataMappingInfo(&mClientCompositionInfo,
+                                                                 layerNum)) != NO_ERROR) {
             DISPLAY_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
             return ret;
         }
 
-        if ((ret = mDisplaySceneInfo.setClientCompositionColorData(mClientCompositionInfo,
-                                                                   layerColorData, dimSdrRatio)) !=
-            NO_ERROR) {
+        if ((ret = getDisplaySceneInfo().setClientCompositionColorData(mClientCompositionInfo,
+                                                                       layerColorData,
+                                                                       dimSdrRatio)) != NO_ERROR) {
             DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
             return ret;
         }
@@ -350,20 +230,17 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 
         if (layer->mCompositionType == HWC2_COMPOSITION_CLIENT) continue;
 
-        LayerColorData& layerColorData =
-            mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
+        LayerColorData& layerColorData = getDisplaySceneInfo().getLayerColorDataInstance(layerNum);
 
         /* set layer data mapping info */
-        if ((ret = mDisplaySceneInfo.setLayerDataMappingInfo(layer, layerNum))
-                != NO_ERROR) {
+        if ((ret = getDisplaySceneInfo().setLayerDataMappingInfo(layer, layerNum)) != NO_ERROR) {
             DISPLAY_LOGE("%s: layer[%d] setLayerDataMappingInfo fail, layerNum(%d)",
                     __func__, i, layerNum);
             return ret;
         }
 
-
-        if ((ret = mDisplaySceneInfo.setLayerColorData(layerColorData, layer,
-                                                       dimSdrRatio)) != NO_ERROR) {
+        if ((ret = getDisplaySceneInfo().setLayerColorData(layerColorData, layer, dimSdrRatio)) !=
+            NO_ERROR) {
             DISPLAY_LOGE("%s: layer[%d] setLayerColorData fail, layerNum(%d)",
                     __func__, i, layerNum);
             return ret;
@@ -374,8 +251,8 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
     }
 
     /* Resize layer_data when layers were destroyed */
-    if (layerNum < mDisplaySceneInfo.displayScene.layer_data.size())
-        mDisplaySceneInfo.displayScene.layer_data.resize(layerNum);
+    if (layerNum < getDisplaySceneInfo().displayScene.layer_data.size())
+        getDisplaySceneInfo().displayScene.layer_data.resize(layerNum);
 
     return NO_ERROR;
 }
@@ -387,10 +264,9 @@ bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
         return false;
     }
 
-    if (mDisplaySceneInfo.layerDataMappingInfo.count(layer) == 0)
-        return false;
+    if (getDisplaySceneInfo().layerDataMappingInfo.count(layer) == 0) return false;
 
-    uint32_t index =  mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
+    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
     const DisplayType display = getDcDisplayType();
     auto size = displayColorInterface->GetPipelineData(display)->Dpp().size();
     if (index >= size) {
@@ -403,7 +279,7 @@ bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
 
 const ExynosPrimaryDisplayModule::GsInterfaceType::IDpp& ExynosPrimaryDisplayModule::getDppForLayer(
         ExynosMPPSource* layer) {
-    uint32_t index = mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
+    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     const DisplayType display = getDcDisplayType();
     return displayColorInterface->GetPipelineData(display)->Dpp()[index].get();
@@ -411,9 +287,8 @@ const ExynosPrimaryDisplayModule::GsInterfaceType::IDpp& ExynosPrimaryDisplayMod
 
 int32_t ExynosPrimaryDisplayModule::getDppIndexForLayer(ExynosMPPSource* layer)
 {
-    if (mDisplaySceneInfo.layerDataMappingInfo.count(layer) == 0)
-        return -1;
-    uint32_t index = mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
+    if (getDisplaySceneInfo().layerDataMappingInfo.count(layer) == 0) return -1;
+    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
 
     return static_cast<int32_t>(index);
 }
@@ -426,15 +301,15 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
 
     bool forceDisplayColorSetting = false;
-    if (!mDisplaySceneInfo.displaySettingDelivered || isForceColorUpdate())
+    if (!getDisplaySceneInfo().displaySettingDelivered || isForceColorUpdate())
         forceDisplayColorSetting = true;
 
     setForceColorUpdate(false);
 
     if (displayColorInterface != nullptr) {
-        moduleDisplayInterface->setColorSettingChanged(
-            mDisplaySceneInfo.needDisplayColorSetting(),
-            forceDisplayColorSetting);
+        moduleDisplayInterface
+                ->setColorSettingChanged(getDisplaySceneInfo().needDisplayColorSetting(),
+                                         forceDisplayColorSetting);
     }
 
     ret = ExynosDisplay::deliverWinConfigData();
@@ -443,9 +318,9 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
 
     if (mDpuData.enable_readback &&
        !mDpuData.readback_info.requested_from_service)
-        mDisplaySceneInfo.displaySettingDelivered = false;
+        getDisplaySceneInfo().displaySettingDelivered = false;
     else
-        mDisplaySceneInfo.displaySettingDelivered = true;
+        getDisplaySceneInfo().displaySettingDelivered = true;
 
     return ret;
 }
@@ -460,25 +335,24 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 
     updateBrightnessState();
     /* clear flag and layer mapping info before setting */
-    mDisplaySceneInfo.reset();
+    getDisplaySceneInfo().reset();
 
     if ((ret = setLayersColorData()) != NO_ERROR)
         return ret;
 
-    mDisplaySceneInfo.displayScene.bm = mBrightnessController->isGhbmOn()
+    getDisplaySceneInfo().displayScene.bm = mBrightnessController->isGhbmOn()
             ? displaycolor::BrightnessMode::BM_HBM
             : displaycolor::BrightnessMode::BM_NOMINAL;
 
-    mDisplaySceneInfo.displayScene.force_hdr = mBrightnessController->isDimSdr();
-    mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
-    mDisplaySceneInfo.displayScene.hdr_layer_state = mBrightnessController->getHdrLayerState();
-    mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
+    getDisplaySceneInfo().displayScene.force_hdr = mBrightnessController->isDimSdr();
+    getDisplaySceneInfo().displayScene.lhbm_on = mBrightnessController->isLhbmOn();
+    getDisplaySceneInfo().displayScene.hdr_layer_state = mBrightnessController->getHdrLayerState();
+    getDisplaySceneInfo().displayScene.dbv = mBrightnessController->getBrightnessLevel();
 
-    if (hwcCheckDebugMessages(eDebugColorManagement))
-        mDisplaySceneInfo.printDisplayScene();
+    if (hwcCheckDebugMessages(eDebugColorManagement)) getDisplaySceneInfo().printDisplayScene();
 
     const DisplayType display = getDcDisplayType();
-    if ((ret = displayColorInterface->Update(display, mDisplaySceneInfo.displayScene)) != 0) {
+    if ((ret = displayColorInterface->Update(display, getDisplaySceneInfo().displayScene)) != 0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
         return ret;
     }
@@ -487,11 +361,11 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 }
 
 int32_t ExynosPrimaryDisplayModule::resetColorMappingInfo(ExynosMPPSource* mppSrc) {
-    if (mDisplaySceneInfo.layerDataMappingInfo.count(mppSrc) == 0) {
+    if (getDisplaySceneInfo().layerDataMappingInfo.count(mppSrc) == 0) {
         return -EINVAL;
     }
 
-    mDisplaySceneInfo.layerDataMappingInfo[mppSrc].planeId =
+    getDisplaySceneInfo().layerDataMappingInfo[mppSrc].planeId =
             DisplaySceneInfo::LayerMappingInfo::kPlaneIdNone;
 
     return NO_ERROR;
@@ -508,17 +382,17 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
         (ExynosDisplayDrmInterfaceModule*)(mDisplayInterface.get());
     auto refresh_rate = moduleDisplayInterface->getDesiredRefreshRate();
     if (refresh_rate > 0) {
-        mDisplaySceneInfo.displayScene.refresh_rate = refresh_rate;
+        getDisplaySceneInfo().displayScene.refresh_rate = refresh_rate;
     }
     auto operation_rate = moduleDisplayInterface->getOperationRate();
     if (operation_rate > 0) {
-        mDisplaySceneInfo.displayScene.operation_rate = static_cast<uint32_t>(operation_rate);
+        getDisplaySceneInfo().displayScene.operation_rate = static_cast<uint32_t>(operation_rate);
     }
 
-    mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
-    mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
+    getDisplaySceneInfo().displayScene.lhbm_on = mBrightnessController->isLhbmOn();
+    getDisplaySceneInfo().displayScene.dbv = mBrightnessController->getBrightnessLevel();
     const DisplayType display = getDcDisplayType();
-    if ((ret = displayColorInterface->UpdatePresent(display, mDisplaySceneInfo.displayScene)) !=
+    if ((ret = displayColorInterface->UpdatePresent(display, getDisplaySceneInfo().displayScene)) !=
         0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
         return ret;
