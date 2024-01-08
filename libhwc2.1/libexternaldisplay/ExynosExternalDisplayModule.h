@@ -30,8 +30,6 @@ class ExynosExternalDisplayModule : public ExynosExternalDisplay {
         ~ExynosExternalDisplayModule();
         virtual int32_t validateWinConfigData();
 
-        ColorManager* getColorManager() { return mColorManager.get(); }
-
         int32_t getColorModes(uint32_t* outNumModes, int32_t* outModes) override;
         int32_t setColorMode(int32_t mode) override;
         int32_t getRenderIntents(int32_t mode, uint32_t* outNumIntents,

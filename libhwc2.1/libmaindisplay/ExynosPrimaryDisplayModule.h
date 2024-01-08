@@ -162,8 +162,6 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
 
         int32_t updateBrightnessTable();
 
-        ColorManager* getColorManager() { return mColorManager.get(); }
-
     private:
         int32_t setLayersColorData();
         std::unique_ptr<ColorManager> mColorManager;
