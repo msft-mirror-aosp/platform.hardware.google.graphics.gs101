@@ -162,37 +162,4 @@ int32_t ColorManager::setColorTransform(const float* matrix, int32_t hint) {
     return HWC2_ERROR_NONE;
 }
 
-bool ColorManager::hasDppForLayer(ExynosMPPSource* layer) {
-    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    if (displayColorInterface == nullptr) {
-        return false;
-    }
-
-    if (getDisplaySceneInfo().layerDataMappingInfo.count(layer) == 0) return false;
-
-    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
-    const DisplayType display = mExynosDisplay->getDcDisplayType();
-    auto size = displayColorInterface->GetPipelineData(display)->Dpp().size();
-    if (index >= size) {
-        DISPLAY_DRM_LOGE("%s: invalid dpp index(%d) dpp size(%zu)", __func__, index, size);
-        return false;
-    }
-
-    return true;
-}
-
-const ColorManager::GsInterfaceType::IDpp& ColorManager::getDppForLayer(ExynosMPPSource* layer) {
-    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
-    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = mExynosDisplay->getDcDisplayType();
-    return displayColorInterface->GetPipelineData(display)->Dpp()[index].get();
-}
-
-int32_t ColorManager::getDppIndexForLayer(ExynosMPPSource* layer) {
-    if (getDisplaySceneInfo().layerDataMappingInfo.count(layer) == 0) return -1;
-    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
-
-    return static_cast<int32_t>(index);
-}
-
 } // namespace gs101

@@ -45,19 +45,6 @@ public:
     int32_t setColorModeWithRenderIntent(int32_t mode, int32_t intent);
     int32_t setColorTransform(const float* matrix, int32_t hint);
 
-    /* Call getDppForLayer() only if hasDppForLayer() is true */
-    bool hasDppForLayer(ExynosMPPSource* layer);
-    const GsInterfaceType::IDpp& getDppForLayer(ExynosMPPSource* layer);
-    int32_t getDppIndexForLayer(ExynosMPPSource* layer);
-    /* Check if layer's assigned plane id has changed, save the new planeId.
-     * call only if hasDppForLayer is true */
-    bool checkAndSaveLayerPlaneId(ExynosMPPSource* layer, uint32_t planeId) {
-        auto& info = getDisplaySceneInfo().layerDataMappingInfo[layer];
-        bool change = info.planeId != planeId;
-        info.planeId = planeId;
-        return change;
-    }
-
 private:
     ExynosDisplay* mExynosDisplay;
     ExynosDeviceModule* mDevice;

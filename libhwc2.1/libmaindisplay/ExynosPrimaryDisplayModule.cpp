@@ -257,6 +257,42 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
     return NO_ERROR;
 }
 
+bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
+{
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    if (displayColorInterface == nullptr) {
+        return false;
+    }
+
+    if (getDisplaySceneInfo().layerDataMappingInfo.count(layer) == 0) return false;
+
+    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
+    const DisplayType display = getDcDisplayType();
+    auto size = displayColorInterface->GetPipelineData(display)->Dpp().size();
+    if (index >= size) {
+        DISPLAY_LOGE("%s: invalid dpp index(%d) dpp size(%zu)", __func__, index, size);
+        return false;
+    }
+
+    return true;
+}
+
+const ExynosPrimaryDisplayModule::GsInterfaceType::IDpp& ExynosPrimaryDisplayModule::getDppForLayer(
+        ExynosMPPSource* layer) {
+    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    const DisplayType display = getDcDisplayType();
+    return displayColorInterface->GetPipelineData(display)->Dpp()[index].get();
+}
+
+int32_t ExynosPrimaryDisplayModule::getDppIndexForLayer(ExynosMPPSource* layer)
+{
+    if (getDisplaySceneInfo().layerDataMappingInfo.count(layer) == 0) return -1;
+    uint32_t index = getDisplaySceneInfo().layerDataMappingInfo[layer].dppIdx;
+
+    return static_cast<int32_t>(index);
+}
+
 int ExynosPrimaryDisplayModule::deliverWinConfigData()
 {
     int ret = 0;
