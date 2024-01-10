@@ -17,6 +17,7 @@
 #include "ExynosDeviceModule.h"
 
 #include "ExynosDisplayDrmInterfaceModule.h"
+#include "ExynosExternalDisplayModule.h"
 #include "ExynosPrimaryDisplayModule.h"
 
 extern struct exynos_hwc_control exynosHWCControl;
@@ -59,4 +60,18 @@ int ExynosDeviceModule::initDisplayColor(
     }
 
     return NO_ERROR;
+}
+
+ColorManager* ExynosDeviceModule::getDisplayColorManager(ExynosDisplay* display) {
+    if (display->mType == HWC_DISPLAY_PRIMARY) {
+        ExynosPrimaryDisplayModule* primaryDisplay =
+                static_cast<ExynosPrimaryDisplayModule*>(display);
+        return primaryDisplay->getColorManager();
+    } else if (display->mType == HWC_DISPLAY_EXTERNAL) {
+        ExynosExternalDisplayModule* externaDisplay =
+                static_cast<ExynosExternalDisplayModule*>(display);
+        return externaDisplay->getColorManager();
+    }
+    ALOGW("%s: no color manager for display->mType=%d", __func__, display->mType);
+    return nullptr;
 }

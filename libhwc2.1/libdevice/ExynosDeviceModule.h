@@ -23,6 +23,7 @@
 using namespace displaycolor;
 
 namespace gs101 {
+class ColorManager;
 
 class ExynosDeviceModule : public ExynosDevice {
     using GsInterfaceType = gs::ColorDrmBlobFactory::GsInterfaceType;
@@ -33,6 +34,8 @@ class ExynosDeviceModule : public ExynosDevice {
         GsInterfaceType* getDisplayColorInterface() { return mDisplayColorInterface; }
         void setActiveDisplay(uint32_t index) { mActiveDisplay = index; }
         uint32_t getActiveDisplay() const { return mActiveDisplay; }
+
+        ColorManager* getDisplayColorManager(ExynosDisplay* display);
 
     private:
         int initDisplayColor(const std::vector<displaycolor::DisplayInfo>& display_info);
