@@ -140,27 +140,9 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
             return displayColorInterface != nullptr;
         }
 
-        /* Call getDppForLayer() only if hasDppForLayer() is true */
-        bool hasDppForLayer(ExynosMPPSource* layer);
-        const GsInterfaceType::IDpp& getDppForLayer(ExynosMPPSource* layer);
-        int32_t getDppIndexForLayer(ExynosMPPSource* layer);
-        /* Check if layer's assigned plane id has changed, save the new planeId.
-         * call only if hasDppForLayer is true */
-        bool checkAndSaveLayerPlaneId(ExynosMPPSource* layer, uint32_t planeId) {
-            auto& info = getDisplaySceneInfo().layerDataMappingInfo[layer];
-            bool change = info.planeId != planeId;
-            info.planeId = planeId;
-            return change;
-        }
-
-        const GsInterfaceType::IDqe& getDqe()
-        {
-            const DisplayType display = getDcDisplayType();
-            GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-            return displayColorInterface->GetPipelineData(display)->Dqe();
-        };
-
         int32_t updateBrightnessTable();
+
+        ColorManager* getColorManager() { return mColorManager.get(); }
 
     private:
         int32_t setLayersColorData();

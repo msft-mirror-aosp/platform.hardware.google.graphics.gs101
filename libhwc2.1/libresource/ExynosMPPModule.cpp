@@ -47,13 +47,14 @@ int32_t ExynosMPPModule::setColorConversionInfo()
         MPP_LOGE("%s: mAssignedDisplay is null", __func__);
         return -EINVAL;
     }
-    if (mAssignedDisplay->mType != HWC_DISPLAY_PRIMARY)
-        return NO_ERROR;
 
-    ExynosPrimaryDisplayModule* primaryDisplay =
-        (ExynosPrimaryDisplayModule*)mAssignedDisplay;
-
-    if (!primaryDisplay->hasDisplayColor()) {
+    ExynosDeviceModule* device = static_cast<ExynosDeviceModule*>(mAssignedDisplay->mDevice);
+    ColorManager* colorManager = device->getDisplayColorManager(mAssignedDisplay);
+    if (colorManager == nullptr) {
+        MPP_LOGE("%s: colorManager is null", __func__);
+        return -EINVAL;
+    }
+    if (!colorManager->getDisplayColorInterface()) {
         return NO_ERROR;
     }
 
@@ -71,13 +72,13 @@ int32_t ExynosMPPModule::setColorConversionInfo()
             mppLayer->setLayerData(nullptr, 0);
             continue;
         }
-        if (primaryDisplay->hasDppForLayer(layer) == false) {
+        if (colorManager->hasDppForLayer(layer) == false) {
             MPP_LOGE("%s: src[%zu] need color conversion but there is no IDpp", __func__, i);
             return -EINVAL;
         }
         MPP_LOGD(eDebugColorManagement,
                 "%s, src: 0x%8x", __func__, mppSource->mSrcImg.dataSpace);
-        const auto& dpp = primaryDisplay->getDppForLayer(layer);
+        const auto& dpp = colorManager->getDppForLayer(layer);
         mppLayer->setLayerData((void *)&dpp, sizeof(dpp));
     }
     return NO_ERROR;
