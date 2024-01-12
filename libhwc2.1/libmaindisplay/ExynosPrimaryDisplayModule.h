@@ -114,8 +114,8 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 hwc_client_target_property_t* outClientTargetProperty,
                 HwcDimmingStage *outDimmingStage = nullptr) override;
         virtual int deliverWinConfigData();
-        virtual int32_t updateColorConversionInfo();
-        virtual int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc);
+        virtual int32_t updateColorConversionInfo() override;
+        virtual int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc) override;
         virtual int32_t updatePresentColorConversionInfo();
         virtual bool checkRrCompensationEnabled() {
             const DisplayType display = getDcDisplayType();
@@ -145,7 +145,6 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         ColorManager* getColorManager() { return mColorManager.get(); }
 
     private:
-        int32_t setLayersColorData();
         std::unique_ptr<ColorManager> mColorManager;
 
         DisplaySceneInfo& getDisplaySceneInfo() { return mColorManager->getDisplaySceneInfo(); }
