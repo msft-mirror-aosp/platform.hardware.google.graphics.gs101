@@ -194,69 +194,6 @@ int32_t ExynosPrimaryDisplayModule::updateBrightnessTable() {
     return HWC2_ERROR_NONE;
 }
 
-int32_t ExynosPrimaryDisplayModule::setLayersColorData()
-{
-    int32_t ret = 0;
-    uint32_t layerNum = 0;
-
-    // TODO: b/212616164 remove dimSdrRatio
-    float dimSdrRatio = mBrightnessController->getSdrDimRatioForInstantHbm();
-
-    // for client target
-    {
-        LayerColorData& layerColorData = getDisplaySceneInfo().getLayerColorDataInstance(layerNum);
-
-        /* set layer data mapping info */
-        if ((ret = getDisplaySceneInfo().setLayerDataMappingInfo(&mClientCompositionInfo,
-                                                                 layerNum)) != NO_ERROR) {
-            DISPLAY_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
-            return ret;
-        }
-
-        if ((ret = getDisplaySceneInfo().setClientCompositionColorData(mClientCompositionInfo,
-                                                                       layerColorData,
-                                                                       dimSdrRatio)) != NO_ERROR) {
-            DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
-            return ret;
-        }
-
-        layerColorData.is_client_target = true;
-        layerNum++;
-    }
-
-    for (uint32_t i = 0; i < mLayers.size(); i++)
-    {
-        ExynosLayer* layer = mLayers[i];
-
-        if (layer->mCompositionType == HWC2_COMPOSITION_CLIENT) continue;
-
-        LayerColorData& layerColorData = getDisplaySceneInfo().getLayerColorDataInstance(layerNum);
-
-        /* set layer data mapping info */
-        if ((ret = getDisplaySceneInfo().setLayerDataMappingInfo(layer, layerNum)) != NO_ERROR) {
-            DISPLAY_LOGE("%s: layer[%d] setLayerDataMappingInfo fail, layerNum(%d)",
-                    __func__, i, layerNum);
-            return ret;
-        }
-
-        if ((ret = getDisplaySceneInfo().setLayerColorData(layerColorData, layer, dimSdrRatio)) !=
-            NO_ERROR) {
-            DISPLAY_LOGE("%s: layer[%d] setLayerColorData fail, layerNum(%d)",
-                    __func__, i, layerNum);
-            return ret;
-        }
-
-        layerColorData.is_client_target = false;
-        layerNum++;
-    }
-
-    /* Resize layer_data when layers were destroyed */
-    if (layerNum < getDisplaySceneInfo().displayScene.layer_data.size())
-        getDisplaySceneInfo().displayScene.layer_data.resize(layerNum);
-
-    return NO_ERROR;
-}
-
 int ExynosPrimaryDisplayModule::deliverWinConfigData()
 {
     int ret = 0;
@@ -291,49 +228,13 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
 
 int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 {
-    int ret = 0;
-    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    if (displayColorInterface == nullptr) {
-        return ret;
-    }
-
-    updateBrightnessState();
-    /* clear flag and layer mapping info before setting */
-    getDisplaySceneInfo().reset();
-
-    if ((ret = setLayersColorData()) != NO_ERROR)
-        return ret;
-
-    getDisplaySceneInfo().displayScene.bm = mBrightnessController->isGhbmOn()
-            ? displaycolor::BrightnessMode::BM_HBM
-            : displaycolor::BrightnessMode::BM_NOMINAL;
-
-    getDisplaySceneInfo().displayScene.force_hdr = mBrightnessController->isDimSdr();
-    getDisplaySceneInfo().displayScene.lhbm_on = mBrightnessController->isLhbmOn();
-    getDisplaySceneInfo().displayScene.hdr_layer_state = mBrightnessController->getHdrLayerState();
-    getDisplaySceneInfo().displayScene.dbv = mBrightnessController->getBrightnessLevel();
-
-    if (hwcCheckDebugMessages(eDebugColorManagement)) getDisplaySceneInfo().printDisplayScene();
-
-    const DisplayType display = getDcDisplayType();
-    if ((ret = displayColorInterface->Update(display, getDisplaySceneInfo().displayScene)) != 0) {
-        DISPLAY_LOGE("Display Scene update error (%d)", ret);
-        return ret;
-    }
-
-    return ret;
+    return mColorManager->updateColorConversionInfo();
 }
 
 int32_t ExynosPrimaryDisplayModule::resetColorMappingInfo(ExynosMPPSource* mppSrc) {
-    if (getDisplaySceneInfo().layerDataMappingInfo.count(mppSrc) == 0) {
-        return -EINVAL;
-    }
-
-    getDisplaySceneInfo().layerDataMappingInfo[mppSrc].planeId =
-            DisplaySceneInfo::LayerMappingInfo::kPlaneIdNone;
-
-    return NO_ERROR;
+    return mColorManager->resetColorMappingInfo(mppSrc);
 }
+
 int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 {
     int ret = NO_ERROR;

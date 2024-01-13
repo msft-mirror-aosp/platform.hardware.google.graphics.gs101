@@ -21,6 +21,7 @@
 #include "ExynosVirtualDisplayModule.h"
 #endif
 
+#include "ExynosDisplayDrmInterfaceModule.h"
 #include "ExynosHWCDebug.h"
 #include "ExynosHWCHelper.h"
 
@@ -92,4 +93,40 @@ int32_t ExynosExternalDisplayModule::setColorModeWithRenderIntent(int32_t mode, 
 
 int32_t ExynosExternalDisplayModule::setColorTransform(const float* matrix, int32_t hint) {
     return mColorManager->setColorTransform(matrix, hint);
+}
+
+int32_t ExynosExternalDisplayModule::updateColorConversionInfo() {
+    return mColorManager->updateColorConversionInfo();
+}
+
+int32_t ExynosExternalDisplayModule::resetColorMappingInfo(ExynosMPPSource* mppSrc) {
+    return mColorManager->resetColorMappingInfo(mppSrc);
+}
+
+int ExynosExternalDisplayModule::deliverWinConfigData() {
+    int ret = 0;
+    ExynosDisplayDrmInterfaceModule* moduleDisplayInterface =
+            (ExynosDisplayDrmInterfaceModule*)(mDisplayInterface.get());
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+
+    bool forceDisplayColorSetting = false;
+    if (!getDisplaySceneInfo().displaySettingDelivered || isForceColorUpdate())
+        forceDisplayColorSetting = true;
+
+    setForceColorUpdate(false);
+
+    if (displayColorInterface != nullptr) {
+        moduleDisplayInterface
+                ->setColorSettingChanged(getDisplaySceneInfo().needDisplayColorSetting(),
+                                         forceDisplayColorSetting);
+    }
+
+    ret = ExynosDisplay::deliverWinConfigData();
+
+    if (mDpuData.enable_readback && !mDpuData.readback_info.requested_from_service)
+        getDisplaySceneInfo().displaySettingDelivered = false;
+    else
+        getDisplaySceneInfo().displaySettingDelivered = true;
+
+    return ret;
 }

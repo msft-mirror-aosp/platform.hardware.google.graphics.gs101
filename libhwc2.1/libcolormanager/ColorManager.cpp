@@ -18,6 +18,7 @@
 #include "BrightnessController.h"
 #include "ExynosDisplay.h"
 #include "ExynosHWCDebug.h"
+#include "ExynosLayer.h"
 
 namespace gs101 {
 
@@ -198,6 +199,125 @@ int32_t ColorManager::getDppIndexForLayer(ExynosMPPSource* layer) {
 const ColorManager::GsInterfaceType::IDqe& ColorManager::getDqe() {
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     return displayColorInterface->GetPipelineData(mExynosDisplay->getDcDisplayType())->Dqe();
+}
+
+int32_t ColorManager::setLayersColorData() {
+    int32_t ret = 0;
+    uint32_t layerNum = 0;
+
+    // TODO: b/212616164 remove dimSdrRatio
+    float dimSdrRatio = 1;
+    if (mExynosDisplay->mBrightnessController)
+        dimSdrRatio = mExynosDisplay->mBrightnessController->getSdrDimRatioForInstantHbm();
+
+    // for client target
+    {
+        LayerColorData& layerColorData = getDisplaySceneInfo().getLayerColorDataInstance(layerNum);
+
+        /* set layer data mapping info */
+        if ((ret = getDisplaySceneInfo()
+                           .setLayerDataMappingInfo(&mExynosDisplay->mClientCompositionInfo,
+                                                    layerNum)) != NO_ERROR) {
+            DISPLAY_DRM_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
+            return ret;
+        }
+
+        if ((ret = getDisplaySceneInfo()
+                           .setClientCompositionColorData(mExynosDisplay->mClientCompositionInfo,
+                                                          layerColorData, dimSdrRatio)) !=
+            NO_ERROR) {
+            DISPLAY_DRM_LOGE("%s: setClientCompositionColorData fail", __func__);
+            return ret;
+        }
+
+        layerColorData.is_client_target = true;
+        layerNum++;
+    }
+
+    for (uint32_t i = 0; i < mExynosDisplay->mLayers.size(); i++) {
+        ExynosLayer* layer = mExynosDisplay->mLayers[i];
+
+        if (layer->mCompositionType == HWC2_COMPOSITION_CLIENT) continue;
+
+        LayerColorData& layerColorData = getDisplaySceneInfo().getLayerColorDataInstance(layerNum);
+
+        /* set layer data mapping info */
+        if ((ret = getDisplaySceneInfo().setLayerDataMappingInfo(layer, layerNum)) != NO_ERROR) {
+            DISPLAY_DRM_LOGE("%s: layer[%d] setLayerDataMappingInfo fail, layerNum(%d)", __func__,
+                             i, layerNum);
+            return ret;
+        }
+
+        if ((ret = getDisplaySceneInfo().setLayerColorData(layerColorData, layer, dimSdrRatio)) !=
+            NO_ERROR) {
+            DISPLAY_DRM_LOGE("%s: layer[%d] setLayerColorData fail, layerNum(%d)", __func__, i,
+                             layerNum);
+            return ret;
+        }
+
+        layerColorData.is_client_target = false;
+        layerNum++;
+    }
+
+    /* Resize layer_data when layers were destroyed */
+    if (layerNum < getDisplaySceneInfo().displayScene.layer_data.size())
+        getDisplaySceneInfo().displayScene.layer_data.resize(layerNum);
+
+    return NO_ERROR;
+}
+
+int32_t ColorManager::updateColorConversionInfo() {
+    int ret = 0;
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    if (displayColorInterface == nullptr) {
+        return ret;
+    }
+
+    mExynosDisplay->updateBrightnessState();
+    /* clear flag and layer mapping info before setting */
+    getDisplaySceneInfo().reset();
+
+    if ((ret = setLayersColorData()) != NO_ERROR) return ret;
+
+    DisplayScene& displayScene = getDisplaySceneInfo().displayScene;
+    auto& brightnessController = mExynosDisplay->mBrightnessController;
+
+    displayScene.bm = displaycolor::BrightnessMode::BM_NOMINAL;
+    if (brightnessController && brightnessController->isGhbmOn())
+        displayScene.bm = displaycolor::BrightnessMode::BM_HBM;
+
+    displayScene.force_hdr = false;
+    displayScene.lhbm_on = false;
+    displayScene.hdr_layer_state = displaycolor::HdrLayerState::kHdrNone;
+    displayScene.dbv = 1000;
+
+    if (brightnessController) {
+        displayScene.force_hdr = brightnessController->isDimSdr();
+        displayScene.lhbm_on = brightnessController->isLhbmOn();
+        displayScene.hdr_layer_state = brightnessController->getHdrLayerState();
+        displayScene.dbv = brightnessController->getBrightnessLevel();
+    }
+
+    if (hwcCheckDebugMessages(eDebugColorManagement)) getDisplaySceneInfo().printDisplayScene();
+
+    const DisplayType display = mExynosDisplay->getDcDisplayType();
+    if ((ret = displayColorInterface->Update(display, getDisplaySceneInfo().displayScene)) != 0) {
+        DISPLAY_DRM_LOGE("Display Scene update error (%d)", ret);
+        return ret;
+    }
+
+    return ret;
+}
+
+int32_t ColorManager::resetColorMappingInfo(ExynosMPPSource* mppSrc) {
+    if (getDisplaySceneInfo().layerDataMappingInfo.count(mppSrc) == 0) {
+        return -EINVAL;
+    }
+
+    getDisplaySceneInfo().layerDataMappingInfo[mppSrc].planeId =
+            DisplaySceneInfo::LayerMappingInfo::kPlaneIdNone;
+
+    return NO_ERROR;
 }
 
 } // namespace gs101
