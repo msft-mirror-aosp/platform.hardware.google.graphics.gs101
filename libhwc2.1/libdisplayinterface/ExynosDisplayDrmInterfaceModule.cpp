@@ -440,21 +440,32 @@ uint32_t ExynosDisplayDrmInterfaceModule::SaveBlob::getBlob(uint32_t type)
 
 void ExynosDisplayDrmInterfaceModule::getDisplayInfo(
         std::vector<displaycolor::DisplayInfo> &display_info) {
-    displaycolor::DisplayInfo primary_display;
+    displaycolor::DisplayInfo disp_info;
 
-    primary_display.brightness_ranges =
-            mExynosDisplay->mBrightnessController->getBrightnessRanges();
-    primary_display.panel_name = GetPanelName();
-    primary_display.panel_serial = GetPanelSerial();
+    if (mExynosDisplay->mType == HWC_DISPLAY_PRIMARY) {
+        disp_info.brightness_ranges = mExynosDisplay->mBrightnessController->getBrightnessRanges();
+        disp_info.panel_name = GetPanelName();
+        disp_info.panel_serial = GetPanelSerial();
+        if (mExynosDisplay->mIndex == 0)
+            disp_info.display_type = DisplayType::DISPLAY_PRIMARY;
+        else
+            disp_info.display_type = DisplayType::DISPLAY_SECONDARY;
+    } else if (mExynosDisplay->mType == HWC_DISPLAY_EXTERNAL) {
+        disp_info.display_type = DisplayType::DISPLAY_EXTERNAL;
+        disp_info.panel_name = "external_display";
+        disp_info.panel_serial = "0001";
+    } else {
+        ALOGE("Unsupported display type (%d) in getDisplayInfo!", mExynosDisplay->mType);
+        return;
+    }
 
-    display_info.push_back(primary_display);
+    display_info.push_back(disp_info);
 }
 
 const std::string ExynosDisplayDrmInterfaceModule::GetPanelInfo(const std::string &sysfs_rel,
                                                                 char delim) {
     ExynosPrimaryDisplayModule* display = (ExynosPrimaryDisplayModule*)mExynosDisplay;
-    const DisplayType type = display->getBuiltInDisplayType();
-    const std::string &sysfs = display->getPanelSysfsPath(type);
+    const std::string& sysfs = display->getPanelSysfsPath();
 
     if (sysfs.empty()) {
         return "";

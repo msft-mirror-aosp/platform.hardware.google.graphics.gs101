@@ -15,7 +15,3 @@
  */
 
 #include "HistogramController.h"
-
-void HistogramController::initSupportSamplePosList() {
-    mHistogramCapability.supportSamplePosList.push_back(HistogramSamplePos::POST_POSTPROC);
-}
