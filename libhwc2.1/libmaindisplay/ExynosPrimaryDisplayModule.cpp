@@ -248,6 +248,8 @@ int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
     }
     mColorMode = (android_color_mode_t)mode;
 
+    mBrightnessController->updateColorRenderIntent(intent);
+
     return HWC2_ERROR_NONE;
 }
 
@@ -298,6 +300,26 @@ int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
     return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
 }
 
+int32_t ExynosPrimaryDisplayModule::updateBrightnessTable() {
+    const IBrightnessTable* table = nullptr;
+    auto displayColorInterface = getDisplayColorInterface();
+    if (displayColorInterface == nullptr) {
+        ALOGE("%s displaycolor interface not available!", __func__);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
+    auto displayType = getBuiltInDisplayType();
+    auto ret = displayColorInterface->GetBrightnessTable(displayType, table);
+    if (ret != android::OK) {
+        ALOGE("%s brightness table not available!", __func__);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+    // BrightnessController is not ready until this step
+    mBrightnessController->updateBrightnessTable(table);
+
+    return HWC2_ERROR_NONE;
+}
+
 int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 {
     int32_t ret = 0;
@@ -305,12 +327,34 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 
     // TODO: b/212616164 remove dimSdrRatio
     float dimSdrRatio = mBrightnessController->getSdrDimRatioForInstantHbm();
+
+    // for client target
+    {
+        LayerColorData& layerColorData = mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
+
+        /* set layer data mapping info */
+        if ((ret = mDisplaySceneInfo.setLayerDataMappingInfo(&mClientCompositionInfo, layerNum)) !=
+            NO_ERROR) {
+            DISPLAY_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
+            return ret;
+        }
+
+        if ((ret = mDisplaySceneInfo.setClientCompositionColorData(mClientCompositionInfo,
+                                                                   layerColorData, dimSdrRatio)) !=
+            NO_ERROR) {
+            DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
+            return ret;
+        }
+
+        layerColorData.is_client_target = true;
+        layerNum++;
+    }
+
     for (uint32_t i = 0; i < mLayers.size(); i++)
     {
         ExynosLayer* layer = mLayers[i];
 
-        if (layer->mValidateCompositionType == HWC2_COMPOSITION_CLIENT)
-            continue;
+        if (layer->mCompositionType == HWC2_COMPOSITION_CLIENT) continue;
 
         LayerColorData& layerColorData =
             mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
@@ -331,26 +375,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
             return ret;
         }
 
-        layerNum++;
-    }
-
-    if (mClientCompositionInfo.mHasCompositionLayer) {
-        LayerColorData& layerColorData =
-            mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
-
-        /* set layer data mapping info */
-        if ((ret = mDisplaySceneInfo.setLayerDataMappingInfo(&mClientCompositionInfo,
-                                                             layerNum)) != NO_ERROR) {
-            DISPLAY_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
-            return ret;
-        }
-
-        if ((ret = mDisplaySceneInfo.setClientCompositionColorData(
-                 mClientCompositionInfo, layerColorData, dimSdrRatio)) != NO_ERROR) {
-          DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
-          return ret;
-        }
-
+        layerColorData.is_client_target = false;
         layerNum++;
     }
 
@@ -454,7 +479,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerDataMappingInfo(
     uint32_t oldPlaneId = prev_layerDataMappingInfo.count(layer) != 0 &&
                     prev_layerDataMappingInfo[layer].dppIdx == index
             ? prev_layerDataMappingInfo[layer].planeId
-            : UINT_MAX;
+            : LayerMappingInfo::kPlaneIdNone;
     layerDataMappingInfo.insert(std::make_pair(layer, LayerMappingInfo{ index, oldPlaneId }));
 
     return NO_ERROR;
@@ -683,6 +708,7 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
         return ret;
     }
 
+    updateBrightnessState();
     /* clear flag and layer mapping info before setting */
     mDisplaySceneInfo.reset();
 
@@ -710,6 +736,16 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
     return ret;
 }
 
+int32_t ExynosPrimaryDisplayModule::resetColorMappingInfo(ExynosMPPSource* mppSrc) {
+    if (mDisplaySceneInfo.layerDataMappingInfo.count(mppSrc) == 0) {
+        return -EINVAL;
+    }
+
+    mDisplaySceneInfo.layerDataMappingInfo[mppSrc].planeId =
+            DisplaySceneInfo::LayerMappingInfo::kPlaneIdNone;
+
+    return NO_ERROR;
+}
 int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 {
     int ret = NO_ERROR;
@@ -723,6 +759,10 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
     auto refresh_rate = moduleDisplayInterface->getDesiredRefreshRate();
     if (refresh_rate > 0) {
         mDisplaySceneInfo.displayScene.refresh_rate = refresh_rate;
+    }
+    auto operation_rate = moduleDisplayInterface->getOperationRate();
+    if (operation_rate > 0) {
+        mDisplaySceneInfo.displayScene.operation_rate = static_cast<uint32_t>(operation_rate);
     }
 
     mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
