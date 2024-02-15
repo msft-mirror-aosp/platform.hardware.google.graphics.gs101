@@ -16,6 +16,8 @@
 #ifndef EXYNOS_DISPLAY_MODULE_H
 #define EXYNOS_DISPLAY_MODULE_H
 
+#include "ColorManager.h"
+#include "DisplaySceneInfo.h"
 #include "ExynosDeviceModule.h"
 #include "ExynosDisplay.h"
 #include "ExynosLayer.h"
@@ -102,30 +104,26 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         void usePreDefinedWindow(bool use);
         virtual int32_t validateWinConfigData();
         void doPreProcessing();
-        virtual int32_t getColorModes(
-                uint32_t* outNumModes,
-                int32_t* outModes);
-        virtual int32_t setColorMode(int32_t mode);
+        virtual int32_t getColorModes(uint32_t* outNumModes, int32_t* outModes) override;
+        virtual int32_t setColorMode(int32_t mode) override;
         virtual int32_t getRenderIntents(int32_t mode, uint32_t* outNumIntents,
-                int32_t* outIntents);
-        virtual int32_t setColorModeWithRenderIntent(int32_t mode,
-                int32_t intent);
-        virtual int32_t setColorTransform(const float* matrix, int32_t hint);
+                                         int32_t* outIntents) override;
+        virtual int32_t setColorModeWithRenderIntent(int32_t mode, int32_t intent) override;
+        virtual int32_t setColorTransform(const float* matrix, int32_t hint) override;
         virtual int32_t getClientTargetProperty(
                 hwc_client_target_property_t* outClientTargetProperty,
                 HwcDimmingStage *outDimmingStage = nullptr) override;
         virtual int deliverWinConfigData();
-        virtual int32_t updateColorConversionInfo();
+        virtual int32_t updateColorConversionInfo() override;
+        virtual int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc) override;
         virtual int32_t updatePresentColorConversionInfo();
         virtual bool checkRrCompensationEnabled() {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
+            const DisplayType display = getDcDisplayType();
             GsInterfaceType* displayColorInterface = getDisplayColorInterface();
             return displayColorInterface
                 ? displayColorInterface->IsRrCompensationEnabled(display)
                 : false;
         }
-
-        virtual bool isColorCalibratedByDevice();
 
         virtual int32_t getColorAdjustedDbv(uint32_t &dbv_adj);
 
@@ -137,134 +135,19 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
 
         virtual PanelCalibrationStatus getPanelCalibrationStatus();
 
-        class DisplaySceneInfo {
-            public:
-                struct LayerMappingInfo {
-                    bool operator==(const LayerMappingInfo &rhs) const {
-                        return ((dppIdx == rhs.dppIdx) && (planeId == rhs.planeId));
-                    }
-
-                    // index in DisplayScene::layer_data
-                    uint32_t dppIdx;
-                    // assigned drm plane id in last color setting update
-                    uint32_t planeId;
-                };
-                bool colorSettingChanged = false;
-                bool displaySettingDelivered = false;
-                DisplayScene displayScene;
-
-                /*
-                 * Index of LayerColorData in DisplayScene::layer_data
-                 * and assigned plane id in last color setting update.
-                 * for each layer, including client composition
-                 * key: ExynosMPPSource*
-                 * data: LayerMappingInfo
-                 */
-                std::map<ExynosMPPSource*, LayerMappingInfo> layerDataMappingInfo;
-                std::map<ExynosMPPSource*, LayerMappingInfo> prev_layerDataMappingInfo;
-
-                void reset() {
-                    colorSettingChanged = false;
-                    prev_layerDataMappingInfo = layerDataMappingInfo;
-                    layerDataMappingInfo.clear();
-                };
-
-                template <typename T, typename M>
-                void updateInfoSingleVal(T &dst, M &src) {
-                    if (src != dst) {
-                        colorSettingChanged = true;
-                        dst = src;
-                    }
-                };
-
-                template <typename T, typename M>
-                void updateInfoVectorVal(std::vector<T> &dst, M *src, uint32_t size) {
-                    if ((dst.size() != size) ||
-                        !std::equal(dst.begin(), dst.end(), src)) {
-                        colorSettingChanged = true;
-                        dst.resize(size);
-                        for (uint32_t i = 0; i < size; i++) {
-                            dst[i] = src[i];
-                        }
-                    }
-                };
-
-                void setColorMode(hwc::ColorMode mode) {
-                    updateInfoSingleVal(displayScene.color_mode, mode);
-                };
-
-                void setRenderIntent(hwc::RenderIntent intent) {
-                    updateInfoSingleVal(displayScene.render_intent, intent);
-                };
-
-                void setColorTransform(const float* matrix) {
-                    for (uint32_t i = 0; i < displayScene.matrix.size(); i++) {
-                        if (displayScene.matrix[i] != matrix[i]) {
-                            colorSettingChanged = true;
-                            displayScene.matrix[i] = matrix[i];
-                        }
-                    }
-                }
-
-                LayerColorData& getLayerColorDataInstance(uint32_t index);
-                int32_t setLayerDataMappingInfo(ExynosMPPSource* layer, uint32_t index);
-                void setLayerDataspace(LayerColorData& layerColorData,
-                        hwc::Dataspace dataspace);
-                void disableLayerHdrStaticMetadata(LayerColorData& layerColorData);
-                void setLayerHdrStaticMetadata(LayerColorData& layerColorData,
-                        const ExynosHdrStaticInfo& exynosHdrStaticInfo);
-                void setLayerColorTransform(LayerColorData& layerColorData,
-                        std::array<float, TRANSFORM_MAT_SIZE> &matrix);
-                void disableLayerHdrDynamicMetadata(LayerColorData& layerColorData);
-                void setLayerHdrDynamicMetadata(LayerColorData& layerColorData,
-                        const ExynosHdrDynamicInfo& exynosHdrDynamicInfo);
-                int32_t setLayerColorData(LayerColorData& layerData,
-                        ExynosLayer* layer, float dimSdrRatio);
-                int32_t setClientCompositionColorData(
-                    const ExynosCompositionInfo& clientCompositionInfo,
-                    LayerColorData& layerData, float dimSdrRatio);
-                bool needDisplayColorSetting();
-                void printDisplayScene();
-                void printLayerColorData(const LayerColorData& layerData);
-        };
-
         bool hasDisplayColor() {
             GsInterfaceType* displayColorInterface = getDisplayColorInterface();
             return displayColorInterface != nullptr;
         }
 
-        /* Call getDppForLayer() only if hasDppForLayer() is true */
-        bool hasDppForLayer(ExynosMPPSource* layer);
-        const GsInterfaceType::IDpp& getDppForLayer(ExynosMPPSource* layer);
-        int32_t getDppIndexForLayer(ExynosMPPSource* layer);
-        /* Check if layer's assigned plane id has changed, save the new planeId.
-         * call only if hasDppForLayer is true */
-        bool checkAndSaveLayerPlaneId(ExynosMPPSource* layer, uint32_t planeId) {
-            auto &info = mDisplaySceneInfo.layerDataMappingInfo[layer];
-            bool change = info.planeId != planeId;
-            info.planeId = planeId;
-            return change;
-        }
+        int32_t updateBrightnessTable();
 
-        size_t getNumOfDpp() {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
-            GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-            return displayColorInterface->GetPipelineData(display)->Dpp().size();
-        };
-
-        const GsInterfaceType::IDqe& getDqe()
-        {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
-            GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-            return displayColorInterface->GetPipelineData(display)->Dqe();
-        };
-
-        // primary or secondary
-        DisplayType getBuiltInDisplayType() { return getDisplayTypeFromIndex(mIndex); }
+        ColorManager* getColorManager() { return mColorManager.get(); }
 
     private:
-        int32_t setLayersColorData();
-        DisplaySceneInfo mDisplaySceneInfo;
+        std::unique_ptr<ColorManager> mColorManager;
+
+        DisplaySceneInfo& getDisplaySceneInfo() { return mColorManager->getDisplaySceneInfo(); }
 
         struct atc_lux_map {
             uint32_t lux;

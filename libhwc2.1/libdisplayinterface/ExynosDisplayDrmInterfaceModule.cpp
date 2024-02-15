@@ -54,9 +54,6 @@ int32_t ExynosDisplayDrmInterfaceModule::initDrmDevice(DrmDevice *drmDevice)
     if ((ret = ExynosDisplayDrmInterface::initDrmDevice(drmDevice)) != NO_ERROR)
         return ret;
 
-    if (isPrimary() == false)
-        return ret;
-
     mOldDqeBlobs.init(drmDevice);
 
     initOldDppBlobs(drmDevice);
@@ -162,19 +159,17 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorBlob(
 
     return ret;
 }
+
 int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorSetting(
-        ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq)
-{
-    if (isPrimary() == false)
-        return NO_ERROR;
+        ExynosDisplayDrmInterface::DrmModeAtomicReq& drmReq) {
     if (!mForceDisplayColorSetting && !mColorSettingChanged)
         return NO_ERROR;
 
-    ExynosPrimaryDisplayModule* display =
-        (ExynosPrimaryDisplayModule*)mExynosDisplay;
+    ExynosDeviceModule* device = static_cast<ExynosDeviceModule*>(mExynosDisplay->mDevice);
+    gs101::ColorManager* colorManager = device->getDisplayColorManager(mExynosDisplay);
 
     int ret = NO_ERROR;
-    const typename GsInterfaceType::IDqe &dqe = display->getDqe();
+    const typename GsInterfaceType::IDqe& dqe = colorManager->getDqe();
 
     if ((mDrmCrtc->cgc_lut_property().id() != 0) &&
         (ret = setDisplayColorBlob(mDrmCrtc->cgc_lut_property(),
@@ -317,9 +312,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
         const std::unique_ptr<DrmPlane> &plane,
         const exynos_win_config_data &config, uint32_t &solidColor)
 {
-    if ((mColorSettingChanged == false) ||
-        (isPrimary() == false))
-        return NO_ERROR;
+    if (mColorSettingChanged == false) return NO_ERROR;
 
     if ((config.assignedMPP == nullptr) ||
         (config.assignedMPP->mAssignedSources.size() == 0)) {
@@ -334,7 +327,12 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
         return -EINVAL;
     }
 
-    ExynosPrimaryDisplayModule* display = (ExynosPrimaryDisplayModule*)mExynosDisplay;
+    ExynosDeviceModule* device = static_cast<ExynosDeviceModule*>(mExynosDisplay->mDevice);
+    ColorManager* colorManager = device->getDisplayColorManager(mExynosDisplay);
+    if (!colorManager) {
+        HWC_LOGE(mExynosDisplay, "%s: no colorManager for this display", __func__);
+        return -EINVAL;
+    }
 
     /*
      * Color conversion of Client and Exynos composition buffer
@@ -342,7 +340,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
      * supported by HWC/displaycolor, we need put client composition under
      * control of HWC/displaycolor.
      */
-    if (!display->hasDppForLayer(mppSource)) {
+    if (!colorManager->hasDppForLayer(mppSource)) {
         if (mppSource->mSourceType == MPP_SOURCE_LAYER) {
             HWC_LOGE(mExynosDisplay,
                 "%s: layer need color conversion but there is no IDpp",
@@ -367,9 +365,9 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
         }
     }
 
-    const typename GsInterfaceType::IDpp &dpp = display->getDppForLayer(mppSource);
-    const uint32_t dppIndex = static_cast<uint32_t>(display->getDppIndexForLayer(mppSource));
-    bool planeChanged = display->checkAndSaveLayerPlaneId(mppSource, plane->id());
+    const typename GsInterfaceType::IDpp& dpp = colorManager->getDppForLayer(mppSource);
+    const uint32_t dppIndex = static_cast<uint32_t>(colorManager->getDppIndexForLayer(mppSource));
+    bool planeChanged = colorManager->checkAndSaveLayerPlaneId(mppSource, plane->id());
 
     auto &color = dpp.SolidColor();
     // exynos_win_config_data.color ARGB
@@ -440,31 +438,32 @@ uint32_t ExynosDisplayDrmInterfaceModule::SaveBlob::getBlob(uint32_t type)
 
 void ExynosDisplayDrmInterfaceModule::getDisplayInfo(
         std::vector<displaycolor::DisplayInfo> &display_info) {
-    displaycolor::DisplayInfo primary_display;
-    auto &tb = primary_display.brightness_table;
-    auto *brightnessTable = mExynosDisplay->mBrightnessController->getBrightnessTable();
+    displaycolor::DisplayInfo disp_info;
 
-    tb.nbm_nits_min = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mNitsStart;
-    tb.nbm_nits_max = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mNitsEnd;
-    tb.nbm_dbv_min = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mBklStart;
-    tb.nbm_dbv_max = brightnessTable[toUnderlying(BrightnessRange::NORMAL)].mBklEnd;
+    if (mExynosDisplay->mType == HWC_DISPLAY_PRIMARY) {
+        disp_info.brightness_ranges = mExynosDisplay->mBrightnessController->getBrightnessRanges();
+        disp_info.panel_name = GetPanelName();
+        disp_info.panel_serial = GetPanelSerial();
+        if (mExynosDisplay->mIndex == 0)
+            disp_info.display_type = DisplayType::DISPLAY_PRIMARY;
+        else
+            disp_info.display_type = DisplayType::DISPLAY_SECONDARY;
+    } else if (mExynosDisplay->mType == HWC_DISPLAY_EXTERNAL) {
+        disp_info.display_type = DisplayType::DISPLAY_EXTERNAL;
+        disp_info.panel_name = "external_display";
+        disp_info.panel_serial = "0001";
+    } else {
+        ALOGE("Unsupported display type (%d) in getDisplayInfo!", mExynosDisplay->mType);
+        return;
+    }
 
-    tb.hbm_nits_min = brightnessTable[toUnderlying(BrightnessRange::HBM)].mNitsStart;
-    tb.hbm_nits_max = brightnessTable[toUnderlying(BrightnessRange::HBM)].mNitsEnd;
-    tb.hbm_dbv_min = brightnessTable[toUnderlying(BrightnessRange::HBM)].mBklStart;
-    tb.hbm_dbv_max = brightnessTable[toUnderlying(BrightnessRange::HBM)].mBklEnd;
-
-    primary_display.panel_name = GetPanelName();
-    primary_display.panel_serial = GetPanelSerial();
-
-    display_info.push_back(primary_display);
+    display_info.push_back(disp_info);
 }
 
 const std::string ExynosDisplayDrmInterfaceModule::GetPanelInfo(const std::string &sysfs_rel,
                                                                 char delim) {
     ExynosPrimaryDisplayModule* display = (ExynosPrimaryDisplayModule*)mExynosDisplay;
-    const DisplayType type = display->getBuiltInDisplayType();
-    const std::string &sysfs = display->getPanelSysfsPath(type);
+    const std::string& sysfs = display->getPanelSysfsPath();
 
     if (sysfs.empty()) {
         return "";
