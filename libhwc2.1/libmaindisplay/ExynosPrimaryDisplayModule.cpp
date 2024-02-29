@@ -44,7 +44,7 @@ mpp_phycal_type_t getMPPTypeFromDPPChannel(uint32_t channel) {
 
 ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice* device,
                                                        const std::string& displayName)
-      : ExynosPrimaryDisplay(index, device, displayName) {
+      : ExynosPrimaryDisplay(index, device, displayName), mAtcInit(false) {
 #ifdef FORCE_GPU_COMPOSITION
     exynosHWCControl.forceGpu = true;
 #endif
