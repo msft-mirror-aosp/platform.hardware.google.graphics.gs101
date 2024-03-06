@@ -125,7 +125,7 @@ int32_t ExynosPrimaryDisplayModule::getColorModes(
         uint32_t* outNumModes, int32_t* outModes)
 {
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -155,7 +155,7 @@ int32_t ExynosPrimaryDisplayModule::setColorMode(int32_t mode)
 {
     ALOGD("%s: mode(%d)", __func__, mode);
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -179,7 +179,7 @@ int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
         uint32_t* outNumIntents, int32_t* outIntents)
 {
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -216,7 +216,7 @@ int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
         int32_t intent)
 {
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -280,7 +280,7 @@ int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
         return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
     }
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     hwc::PixelFormat pixelFormat;
     hwc::Dataspace dataspace;
     bool dimming_linear;
@@ -301,14 +301,14 @@ int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
 }
 
 int32_t ExynosPrimaryDisplayModule::updateBrightnessTable() {
-    const IBrightnessTable* table = nullptr;
+    std::unique_ptr<const IBrightnessTable> table;
     auto displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         ALOGE("%s displaycolor interface not available!", __func__);
         return HWC2_ERROR_NO_RESOURCES;
     }
 
-    auto displayType = getBuiltInDisplayType();
+    auto displayType = getDcDisplayType();
     auto ret = displayColorInterface->GetBrightnessTable(displayType, table);
     if (ret != android::OK) {
         ALOGE("%s brightness table not available!", __func__);
@@ -397,7 +397,7 @@ bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
         return false;
 
     uint32_t index =  mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     auto size = displayColorInterface->GetPipelineData(display)->Dpp().size();
     if (index >= size) {
         DISPLAY_LOGE("%s: invalid dpp index(%d) dpp size(%zu)", __func__, index, size);
@@ -411,7 +411,7 @@ const ExynosPrimaryDisplayModule::GsInterfaceType::IDpp& ExynosPrimaryDisplayMod
         ExynosMPPSource* layer) {
     uint32_t index = mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     return displayColorInterface->GetPipelineData(display)->Dpp()[index].get();
 }
 
@@ -727,7 +727,7 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
     if (hwcCheckDebugMessages(eDebugColorManagement))
         mDisplaySceneInfo.printDisplayScene();
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->Update(display, mDisplaySceneInfo.displayScene)) != 0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
         return ret;
@@ -767,7 +767,7 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 
     mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
     mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->UpdatePresent(display, mDisplaySceneInfo.displayScene)) !=
         0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
@@ -783,7 +783,7 @@ int32_t ExynosPrimaryDisplayModule::getColorAdjustedDbv(uint32_t &dbv_adj) {
         return NO_ERROR;
     }
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     dbv_adj = displayColorInterface->GetPipelineData(display)->Panel().GetAdjustedBrightnessLevel();
     return NO_ERROR;
 }
@@ -1121,7 +1121,7 @@ PanelCalibrationStatus ExynosPrimaryDisplayModule::getPanelCalibrationStatus() {
         return PanelCalibrationStatus::UNCALIBRATED;
     }
 
-    auto displayType = getBuiltInDisplayType();
+    auto displayType = getDcDisplayType();
     auto calibrationInfo = displayColorInterface->GetCalibrationInfo(displayType);
 
     if (calibrationInfo.factory_cal_loaded) {
@@ -1217,7 +1217,7 @@ bool ExynosPrimaryDisplayModule::isDisplaySwitched(int32_t mode, int32_t prevMod
 }
 
 bool ExynosPrimaryDisplayModule::isColorCalibratedByDevice() {
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     return displayColorInterface->GetCalibrationInfo(display).factory_cal_loaded;
 };
