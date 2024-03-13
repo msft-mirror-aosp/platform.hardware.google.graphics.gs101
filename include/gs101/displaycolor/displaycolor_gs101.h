@@ -114,7 +114,7 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
 
             // To avoid updating legacy source code after separate lut and rgb2y,
             // use inheritance instead of composition.
-            struct DtmConfigType : public FlexLutConfigType<uint16_t, uint32_t, 33>,
+            struct DtmConfigType : public FlexLutConfigType<uint32_t, uint32_t, 33>,
                                    public Rgb2YData {};
 
            public:
@@ -183,7 +183,7 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
                 /// CGC dither register value
                 union {
                     DitherConfigType cgc_dither_reg = {};
-                    uint8_t cgc_dither;  // only lowest 8 bit is used
+                    uint16_t cgc_dither;  // only lowest 16 bit is used
                 };
 
                 /// flag to use disp_dither
@@ -317,8 +317,9 @@ class IDisplayColorGS101 : public IDisplayColorGeneric {
     };
 
     /// Get pipeline color data for specified display type
-    virtual const IDisplayPipelineData* GetPipelineData(
-        DisplayType display) const = 0;
+    // deprecated by the 'int64_t display' version
+    virtual const IDisplayPipelineData* GetPipelineData(DisplayType display) const = 0;
+    virtual const IDisplayPipelineData* GetPipelineData(const int64_t display) const = 0;
 
     virtual ~IDisplayColorGS101() {}
 };
