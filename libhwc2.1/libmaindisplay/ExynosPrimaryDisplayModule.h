@@ -116,7 +116,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         virtual int deliverWinConfigData();
         virtual int32_t updateColorConversionInfo() override;
         virtual int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc) override;
-        virtual int32_t updatePresentColorConversionInfo();
+        virtual int32_t updatePresentColorConversionInfo(bool isLhbmOn, uint32_t dbv) override;
         virtual bool checkRrCompensationEnabled() {
             const DisplayType display = getDcDisplayType();
             GsInterfaceType* displayColorInterface = getDisplayColorInterface();
