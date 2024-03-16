@@ -235,8 +235,7 @@ int32_t ExynosPrimaryDisplayModule::resetColorMappingInfo(ExynosMPPSource* mppSr
     return mColorManager->resetColorMappingInfo(mppSrc);
 }
 
-int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
-{
+int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo(bool isLhbmOn, uint32_t dbv) {
     int ret = NO_ERROR;
     GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
@@ -254,8 +253,8 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
         getDisplaySceneInfo().displayScene.operation_rate = static_cast<uint32_t>(operation_rate);
     }
 
-    getDisplaySceneInfo().displayScene.lhbm_on = mBrightnessController->isLhbmOn();
-    getDisplaySceneInfo().displayScene.dbv = mBrightnessController->getBrightnessLevel();
+    getDisplaySceneInfo().displayScene.lhbm_on = isLhbmOn;
+    getDisplaySceneInfo().displayScene.dbv = dbv;
     const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->UpdatePresent(display, getDisplaySceneInfo().displayScene)) !=
         0) {
