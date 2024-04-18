@@ -50,6 +50,8 @@ public:
     void setForceColorUpdate(bool force) { mForceColorUpdate = force; }
     int deliverWinConfigData() override;
 
+    void invalidate() override;
+
 private:
     std::unique_ptr<ColorManager> mColorManager;
 
