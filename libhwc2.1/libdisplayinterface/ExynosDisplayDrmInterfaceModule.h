@@ -60,6 +60,8 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
         int32_t setHistogramControl(hidl_histogram_control_t enabled);
         virtual int32_t setHistogramData(void *bin);
 
+        void clearOldCrtcBlobs() override { mOldDqeBlobs.clearBlobs(); }
+
     protected:
         class SaveBlob {
             public:
@@ -70,6 +72,8 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                 };
                 void addBlob(uint32_t type, uint32_t blob);
                 uint32_t getBlob(uint32_t type);
+                void clearBlobs();
+
             private:
                 DrmDevice *mDrmDevice = NULL;
                 std::vector<uint32_t> blobs;
