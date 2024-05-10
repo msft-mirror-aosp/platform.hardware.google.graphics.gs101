@@ -30,17 +30,17 @@
 extern exynos_hwc_control exynosHWCControl;
 #endif
 
+using namespace gs101;
+
 mpp_phycal_type_t getMPPTypeFromDPPChannel(uint32_t channel) {
 
     for (int i=0; i < MAX_DECON_DMA_TYPE; i++){
-        if(IDMA_CHANNEL_MAP[i].channel == channel)
-            return IDMA_CHANNEL_MAP[i].type;
+        if(idma_channel_map[i].channel == channel)
+            return idma_channel_map[i].type;
     }
 
     return MPP_P_TYPE_MAX;
 }
-
-using namespace gs101;
 
 // enable map layerDataMappingInfo comparison in needDisplayColorSetting()
 inline bool operator==(const ExynosPrimaryDisplayModule::DisplaySceneInfo::LayerMappingInfo &lm1,
@@ -48,8 +48,9 @@ inline bool operator==(const ExynosPrimaryDisplayModule::DisplaySceneInfo::Layer
     return lm1.dppIdx == lm2.dppIdx && lm1.planeId == lm2.planeId;
 }
 
-ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice* device)
-      : ExynosPrimaryDisplay(index, device) {
+ExynosPrimaryDisplayModule::ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice* device,
+                                                       const std::string& displayName)
+      : ExynosPrimaryDisplay(index, device, displayName) {
 #ifdef FORCE_GPU_COMPOSITION
     exynosHWCControl.forceGpu = true;
 #endif
@@ -123,8 +124,8 @@ void ExynosPrimaryDisplayModule::doPreProcessing() {
 int32_t ExynosPrimaryDisplayModule::getColorModes(
         uint32_t* outNumModes, int32_t* outModes)
 {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -153,8 +154,8 @@ int32_t ExynosPrimaryDisplayModule::getColorModes(
 int32_t ExynosPrimaryDisplayModule::setColorMode(int32_t mode)
 {
     ALOGD("%s: mode(%d)", __func__, mode);
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -177,8 +178,8 @@ int32_t ExynosPrimaryDisplayModule::setColorMode(int32_t mode)
 int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
         uint32_t* outNumIntents, int32_t* outIntents)
 {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -214,8 +215,8 @@ int32_t ExynosPrimaryDisplayModule::getRenderIntents(int32_t mode,
 int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
         int32_t intent)
 {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    const DisplayType display = getDcDisplayType();
     const ColorModesMap colorModeMap = displayColorInterface == nullptr
             ? ColorModesMap()
             : displayColorInterface->ColorModesAndRenderIntents(display);
@@ -247,6 +248,8 @@ int32_t ExynosPrimaryDisplayModule::setColorModeWithRenderIntent(int32_t mode,
     }
     mColorMode = (android_color_mode_t)mode;
 
+    mBrightnessController->updateColorRenderIntent(intent);
+
     return HWC2_ERROR_NONE;
 }
 
@@ -256,9 +259,10 @@ int32_t ExynosPrimaryDisplayModule::setColorTransform(
     if ((hint < HAL_COLOR_TRANSFORM_IDENTITY) ||
         (hint > HAL_COLOR_TRANSFORM_CORRECT_TRITANOPIA))
         return HWC2_ERROR_BAD_PARAMETER;
-    ALOGI("%s:: %d, %d", __func__, mColorTransformHint, hint);
-    if (mColorTransformHint != hint)
+    if (mColorTransformHint != hint) {
+        ALOGI("%s:: %d -> %d", __func__, mColorTransformHint, hint);
         setGeometryChanged(GEOMETRY_DISPLAY_COLOR_TRANSFORM_CHANGED);
+    }
     mColorTransformHint = hint;
 #ifdef HWC_SUPPORT_COLOR_TRANSFORM
     mDisplaySceneInfo.setColorTransform(matrix);
@@ -270,13 +274,13 @@ int32_t ExynosPrimaryDisplayModule::setColorTransform(
 int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
         hwc_client_target_property_t* outClientTargetProperty,
         HwcDimmingStage *outDimmingStage) {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         ALOGI("%s dc interface not created", __func__);
         return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
     }
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     hwc::PixelFormat pixelFormat;
     hwc::Dataspace dataspace;
     bool dimming_linear;
@@ -296,6 +300,26 @@ int32_t ExynosPrimaryDisplayModule::getClientTargetProperty(
     return ExynosDisplay::getClientTargetProperty(outClientTargetProperty);
 }
 
+int32_t ExynosPrimaryDisplayModule::updateBrightnessTable() {
+    std::unique_ptr<const IBrightnessTable> table;
+    auto displayColorInterface = getDisplayColorInterface();
+    if (displayColorInterface == nullptr) {
+        ALOGE("%s displaycolor interface not available!", __func__);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
+    auto displayType = getDcDisplayType();
+    auto ret = displayColorInterface->GetBrightnessTable(displayType, table);
+    if (ret != android::OK) {
+        ALOGE("%s brightness table not available!", __func__);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+    // BrightnessController is not ready until this step
+    mBrightnessController->updateBrightnessTable(table);
+
+    return HWC2_ERROR_NONE;
+}
+
 int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 {
     int32_t ret = 0;
@@ -303,12 +327,34 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 
     // TODO: b/212616164 remove dimSdrRatio
     float dimSdrRatio = mBrightnessController->getSdrDimRatioForInstantHbm();
+
+    // for client target
+    {
+        LayerColorData& layerColorData = mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
+
+        /* set layer data mapping info */
+        if ((ret = mDisplaySceneInfo.setLayerDataMappingInfo(&mClientCompositionInfo, layerNum)) !=
+            NO_ERROR) {
+            DISPLAY_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
+            return ret;
+        }
+
+        if ((ret = mDisplaySceneInfo.setClientCompositionColorData(mClientCompositionInfo,
+                                                                   layerColorData, dimSdrRatio)) !=
+            NO_ERROR) {
+            DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
+            return ret;
+        }
+
+        layerColorData.is_client_target = true;
+        layerNum++;
+    }
+
     for (uint32_t i = 0; i < mLayers.size(); i++)
     {
         ExynosLayer* layer = mLayers[i];
 
-        if (layer->mValidateCompositionType == HWC2_COMPOSITION_CLIENT)
-            continue;
+        if (layer->mCompositionType == HWC2_COMPOSITION_CLIENT) continue;
 
         LayerColorData& layerColorData =
             mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
@@ -329,26 +375,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
             return ret;
         }
 
-        layerNum++;
-    }
-
-    if (mClientCompositionInfo.mHasCompositionLayer) {
-        LayerColorData& layerColorData =
-            mDisplaySceneInfo.getLayerColorDataInstance(layerNum);
-
-        /* set layer data mapping info */
-        if ((ret = mDisplaySceneInfo.setLayerDataMappingInfo(&mClientCompositionInfo,
-                                                             layerNum)) != NO_ERROR) {
-            DISPLAY_LOGE("%s: setLayerDataMappingInfo fail for client composition", __func__);
-            return ret;
-        }
-
-        if ((ret = mDisplaySceneInfo.setClientCompositionColorData(
-                 mClientCompositionInfo, layerColorData, dimSdrRatio)) != NO_ERROR) {
-          DISPLAY_LOGE("%s: setClientCompositionColorData fail", __func__);
-          return ret;
-        }
-
+        layerColorData.is_client_target = false;
         layerNum++;
     }
 
@@ -361,7 +388,7 @@ int32_t ExynosPrimaryDisplayModule::setLayersColorData()
 
 bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
 {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         return false;
     }
@@ -370,7 +397,7 @@ bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
         return false;
 
     uint32_t index =  mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     auto size = displayColorInterface->GetPipelineData(display)->Dpp().size();
     if (index >= size) {
         DISPLAY_LOGE("%s: invalid dpp index(%d) dpp size(%zu)", __func__, index, size);
@@ -380,11 +407,11 @@ bool ExynosPrimaryDisplayModule::hasDppForLayer(ExynosMPPSource* layer)
     return true;
 }
 
-const IDisplayColorGS101::IDpp& ExynosPrimaryDisplayModule::getDppForLayer(ExynosMPPSource* layer)
-{
+const ExynosPrimaryDisplayModule::GsInterfaceType::IDpp& ExynosPrimaryDisplayModule::getDppForLayer(
+        ExynosMPPSource* layer) {
     uint32_t index = mDisplaySceneInfo.layerDataMappingInfo[layer].dppIdx;
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
+    const DisplayType display = getDcDisplayType();
     return displayColorInterface->GetPipelineData(display)->Dpp()[index].get();
 }
 
@@ -402,7 +429,7 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
     int ret = 0;
     ExynosDisplayDrmInterfaceModule *moduleDisplayInterface =
         (ExynosDisplayDrmInterfaceModule*)(mDisplayInterface.get());
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
 
     bool forceDisplayColorSetting = false;
     if (!mDisplaySceneInfo.displaySettingDelivered || isForceColorUpdate())
@@ -452,7 +479,7 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerDataMappingInfo(
     uint32_t oldPlaneId = prev_layerDataMappingInfo.count(layer) != 0 &&
                     prev_layerDataMappingInfo[layer].dppIdx == index
             ? prev_layerDataMappingInfo[layer].planeId
-            : UINT_MAX;
+            : LayerMappingInfo::kPlaneIdNone;
     layerDataMappingInfo.insert(std::make_pair(layer, LayerMappingInfo{ index, oldPlaneId }));
 
     return NO_ERROR;
@@ -538,34 +565,31 @@ void ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerHdrDynamicMetadata(
         layerColorData.dynamic_metadata.is_valid = true;
     }
     updateInfoSingleVal(layerColorData.dynamic_metadata.display_maximum_luminance,
-            exynosHdrDynamicInfo.data.display_maximum_luminance);
+                        exynosHdrDynamicInfo.data.targeted_system_display_maximum_luminance);
 
     if (!std::equal(layerColorData.dynamic_metadata.maxscl.begin(),
-                layerColorData.dynamic_metadata.maxscl.end(),
-                exynosHdrDynamicInfo.data.maxscl)) {
+                    layerColorData.dynamic_metadata.maxscl.end(),
+                    exynosHdrDynamicInfo.data.maxscl[0])) {
         colorSettingChanged = true;
         for (uint32_t i = 0 ; i < layerColorData.dynamic_metadata.maxscl.size(); i++) {
-            layerColorData.dynamic_metadata.maxscl[i] =
-                exynosHdrDynamicInfo.data.maxscl[i];
+          layerColorData.dynamic_metadata.maxscl[i] = exynosHdrDynamicInfo.data.maxscl[0][i];
         }
     }
     static constexpr uint32_t DYNAMIC_META_DAT_SIZE = 15;
 
     updateInfoVectorVal(layerColorData.dynamic_metadata.maxrgb_percentages,
-            exynosHdrDynamicInfo.data.maxrgb_percentages,
-            DYNAMIC_META_DAT_SIZE);
+                        exynosHdrDynamicInfo.data.maxrgb_percentages[0], DYNAMIC_META_DAT_SIZE);
     updateInfoVectorVal(layerColorData.dynamic_metadata.maxrgb_percentiles,
-            exynosHdrDynamicInfo.data.maxrgb_percentiles,
-            DYNAMIC_META_DAT_SIZE);
+                        exynosHdrDynamicInfo.data.maxrgb_percentiles[0], DYNAMIC_META_DAT_SIZE);
     updateInfoSingleVal(layerColorData.dynamic_metadata.tm_flag,
-            exynosHdrDynamicInfo.data.tone_mapping.tone_mapping_flag);
+                        exynosHdrDynamicInfo.data.tone_mapping.tone_mapping_flag[0]);
     updateInfoSingleVal(layerColorData.dynamic_metadata.tm_knee_x,
-            exynosHdrDynamicInfo.data.tone_mapping.knee_point_x);
+                        exynosHdrDynamicInfo.data.tone_mapping.knee_point_x[0]);
     updateInfoSingleVal(layerColorData.dynamic_metadata.tm_knee_y,
-            exynosHdrDynamicInfo.data.tone_mapping.knee_point_y);
+                        exynosHdrDynamicInfo.data.tone_mapping.knee_point_y[0]);
     updateInfoVectorVal(layerColorData.dynamic_metadata.bezier_curve_anchors,
-            exynosHdrDynamicInfo.data.tone_mapping.bezier_curve_anchors,
-            DYNAMIC_META_DAT_SIZE);
+                        exynosHdrDynamicInfo.data.tone_mapping.bezier_curve_anchors[0],
+                        DYNAMIC_META_DAT_SIZE);
 }
 
 int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setClientCompositionColorData(
@@ -679,11 +703,12 @@ int32_t ExynosPrimaryDisplayModule::DisplaySceneInfo::setLayerColorData(
 int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
 {
     int ret = 0;
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         return ret;
     }
 
+    updateBrightnessState();
     /* clear flag and layer mapping info before setting */
     mDisplaySceneInfo.reset();
 
@@ -702,7 +727,7 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
     if (hwcCheckDebugMessages(eDebugColorManagement))
         mDisplaySceneInfo.printDisplayScene();
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->Update(display, mDisplaySceneInfo.displayScene)) != 0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
         return ret;
@@ -711,10 +736,20 @@ int32_t ExynosPrimaryDisplayModule::updateColorConversionInfo()
     return ret;
 }
 
+int32_t ExynosPrimaryDisplayModule::resetColorMappingInfo(ExynosMPPSource* mppSrc) {
+    if (mDisplaySceneInfo.layerDataMappingInfo.count(mppSrc) == 0) {
+        return -EINVAL;
+    }
+
+    mDisplaySceneInfo.layerDataMappingInfo[mppSrc].planeId =
+            DisplaySceneInfo::LayerMappingInfo::kPlaneIdNone;
+
+    return NO_ERROR;
+}
 int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 {
     int ret = NO_ERROR;
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         return ret;
     }
@@ -725,10 +760,14 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
     if (refresh_rate > 0) {
         mDisplaySceneInfo.displayScene.refresh_rate = refresh_rate;
     }
+    auto operation_rate = moduleDisplayInterface->getOperationRate();
+    if (operation_rate > 0) {
+        mDisplaySceneInfo.displayScene.operation_rate = static_cast<uint32_t>(operation_rate);
+    }
 
     mDisplaySceneInfo.displayScene.lhbm_on = mBrightnessController->isLhbmOn();
     mDisplaySceneInfo.displayScene.dbv = mBrightnessController->getBrightnessLevel();
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->UpdatePresent(display, mDisplaySceneInfo.displayScene)) !=
         0) {
         DISPLAY_LOGE("Display Scene update error (%d)", ret);
@@ -739,12 +778,12 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 }
 
 int32_t ExynosPrimaryDisplayModule::getColorAdjustedDbv(uint32_t &dbv_adj) {
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     if (displayColorInterface == nullptr) {
         return NO_ERROR;
     }
 
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
+    const DisplayType display = getDcDisplayType();
     dbv_adj = displayColorInterface->GetPipelineData(display)->Panel().GetAdjustedBrightnessLevel();
     return NO_ERROR;
 }
@@ -937,7 +976,9 @@ uint32_t ExynosPrimaryDisplayModule::getAtcLuxMapIndex(std::vector<atc_lux_map> 
 int32_t ExynosPrimaryDisplayModule::setAtcStrength(uint32_t strength) {
     mAtcStrength.value.store(strength);
     if (mAtcStrength.value.is_dirty()) {
-        if (writeIntToFile(mAtcStrength.node, mAtcStrength.value.get()) != NO_ERROR) return -EPERM;
+        if (writeIntToFile(mAtcStrength.node.c_str(), mAtcStrength.value.get()) != NO_ERROR) {
+            return -EPERM;
+        }
         mAtcStrength.value.clear_dirty();
     }
     return NO_ERROR;
@@ -946,7 +987,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcStrength(uint32_t strength) {
 int32_t ExynosPrimaryDisplayModule::setAtcAmbientLight(uint32_t ambient_light) {
     mAtcAmbientLight.value.store(ambient_light);
     if (mAtcAmbientLight.value.is_dirty()) {
-        if (writeIntToFile(mAtcAmbientLight.node, mAtcAmbientLight.value.get()) != NO_ERROR)
+        if (writeIntToFile(mAtcAmbientLight.node.c_str(), mAtcAmbientLight.value.get()) != NO_ERROR)
             return -EPERM;
         mAtcAmbientLight.value.clear_dirty();
     }
@@ -965,7 +1006,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
         for (auto it = kAtcSubSetting.begin(); it != kAtcSubSetting.end(); it++) {
             mAtcSubSetting[it->first.c_str()].value.store(mode.sub_setting[it->first.c_str()]);
             if (mAtcSubSetting[it->first.c_str()].value.is_dirty()) {
-                if (writeIntToFile(mAtcSubSetting[it->first.c_str()].node,
+                if (writeIntToFile(mAtcSubSetting[it->first.c_str()].node.c_str(),
                                    mAtcSubSetting[it->first.c_str()].value.get()) != NO_ERROR)
                     return -EPERM;
                 mAtcSubSetting[it->first.c_str()].value.clear_dirty();
@@ -996,6 +1037,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
             ALOGE("Fail to set atc enable = %d", enable);
             return -EPERM;
         }
+        mPendingAtcOff = false;
     }
 
     mCurrentAtcModeName = enable ? mode_name : "NULL";
@@ -1036,7 +1078,7 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
 
     if (mCurrentLbeState != state) {
         mCurrentLbeState = state;
-        mDevice->onRefresh();
+        mDevice->onRefresh(mDisplayId);
     }
     ALOGI("Lbe state %hhd", mCurrentLbeState);
 }
@@ -1064,7 +1106,7 @@ void ExynosPrimaryDisplayModule::setLbeAmbientLight(int value) {
 
     if (mAtcLuxMapIndex != index) {
         mAtcLuxMapIndex = index;
-        mDevice->onRefresh();
+        mDevice->onRefresh(mDisplayId);
     }
     mCurrentLux = value;
 }
@@ -1079,7 +1121,7 @@ PanelCalibrationStatus ExynosPrimaryDisplayModule::getPanelCalibrationStatus() {
         return PanelCalibrationStatus::UNCALIBRATED;
     }
 
-    auto displayType = getBuiltInDisplayType();
+    auto displayType = getDcDisplayType();
     auto calibrationInfo = displayColorInterface->GetCalibrationInfo(displayType);
 
     if (calibrationInfo.factory_cal_loaded) {
@@ -1126,7 +1168,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcStDimming(uint32_t value) {
 int32_t ExynosPrimaryDisplayModule::setAtcEnable(bool enable) {
     mAtcEnable.value.store(enable);
     if (mAtcEnable.value.is_dirty()) {
-        if (writeIntToFile(mAtcEnable.node, enable) != NO_ERROR) return -EPERM;
+        if (writeIntToFile(mAtcEnable.node.c_str(), enable) != NO_ERROR) return -EPERM;
         mAtcEnable.value.clear_dirty();
     }
     return NO_ERROR;
@@ -1149,7 +1191,7 @@ void ExynosPrimaryDisplayModule::checkAtcAnimation() {
         ALOGI("atc enable is off (pending off=false)");
     }
 
-    mDevice->onRefresh();
+    mDevice->onRefresh(mDisplayId);
 }
 
 int32_t ExynosPrimaryDisplayModule::setPowerMode(int32_t mode) {
@@ -1175,7 +1217,7 @@ bool ExynosPrimaryDisplayModule::isDisplaySwitched(int32_t mode, int32_t prevMod
 }
 
 bool ExynosPrimaryDisplayModule::isColorCalibratedByDevice() {
-    const DisplayType display = getDisplayTypeFromIndex(mIndex);
-    IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+    const DisplayType display = getDcDisplayType();
+    GsInterfaceType* displayColorInterface = getDisplayColorInterface();
     return displayColorInterface->GetCalibrationInfo(display).factory_cal_loaded;
 };

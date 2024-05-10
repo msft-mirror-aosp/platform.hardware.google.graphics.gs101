@@ -17,9 +17,8 @@
 #ifndef EXYNOS_DISPLAY_DRM_INTERFACE_MODULE_H
 #define EXYNOS_DISPLAY_DRM_INTERFACE_MODULE_H
 
-#include <gs101/displaycolor/displaycolor_gs101.h>
 #include <histogram/histogram.h>
-
+#include "DisplayColorModule.h"
 #include "ExynosDisplayDrmInterface.h"
 
 namespace gs101 {
@@ -27,6 +26,7 @@ namespace gs101 {
 using namespace displaycolor;
 
 class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
+    using GsInterfaceType = gs::ColorDrmBlobFactory::GsInterfaceType;
     public:
         ExynosDisplayDrmInterfaceModule(ExynosDisplay *exynosDisplay);
         virtual ~ExynosDisplayDrmInterfaceModule();
@@ -44,31 +44,6 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
             mForceDisplayColorSetting = forceDisplay;
         };
         void destroyOldBlobs(std::vector<uint32_t> &oldBlobs);
-
-        int32_t createCgcBlobFromIDqe(const IDisplayColorGS101::IDqe &dqe,
-                uint32_t &blobId);
-        int32_t createDegammaLutBlobFromIDqe(const IDisplayColorGS101::IDqe &dqe,
-                uint32_t &blobId);
-        int32_t createRegammaLutBlobFromIDqe(const IDisplayColorGS101::IDqe &dqe,
-                uint32_t &blobId);
-        int32_t createGammaMatBlobFromIDqe(const IDisplayColorGS101::IDqe &dqe,
-                uint32_t &blobId);
-        int32_t createLinearMatBlobFromIDqe(const IDisplayColorGS101::IDqe &dqe,
-                uint32_t &blobId);
-        int32_t createDispDitherBlobFromIDqe(const IDisplayColorGS101::IDqe &dqe,
-                uint32_t &blobId);
-        int32_t createCgcDitherBlobFromIDqe(const IDisplayColorGS101::IDqe &dqe,
-                uint32_t &blobId);
-
-        int32_t createEotfBlobFromIDpp(const IDisplayColorGS101::IDpp &dpp,
-                uint32_t &blobId);
-        int32_t createGmBlobFromIDpp(const IDisplayColorGS101::IDpp &dpp,
-                uint32_t &blobId);
-        int32_t createDtmBlobFromIDpp(const IDisplayColorGS101::IDpp &dpp,
-                uint32_t &blobId);
-        int32_t createOetfBlobFromIDpp(const IDisplayColorGS101::IDpp &dpp,
-                uint32_t &blobId);
-
         void getDisplayInfo(std::vector<displaycolor::DisplayInfo> &display_info);
 
         /* For Histogram */
@@ -78,17 +53,10 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
         virtual int32_t setDisplayHistogramSetting(
                 ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq);
 
-        virtual void registerHistogramInfo(IDLHistogram *info) {
-            if (info)
-                mHistogramInfo.reset(info);
-            else
-                mHistogramInfo.reset();
-
-            if (mHistogramInfo.get())
-                mHistogramInfoRegistered = true;
-            else
-                mHistogramInfoRegistered = false;
+        virtual void registerHistogramInfo(const std::shared_ptr<IDLHistogram> &info) {
+            mHistogramInfo = info;
         }
+        bool isHistogramInfoRegistered() { return mHistogramInfo != nullptr; }
         int32_t setHistogramControl(hidl_histogram_control_t enabled);
         virtual int32_t setHistogramData(void *bin);
 
@@ -141,7 +109,7 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                 const DrmProperty &prop,
                 const uint32_t type,
                 const StageDataType &stage,
-                const IDisplayColorGS101::IDqe &dqe,
+                const typename GsInterfaceType::IDqe &dqe,
                 ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq);
         template<typename StageDataType>
         int32_t setPlaneColorBlob(
@@ -149,7 +117,7 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                 const DrmProperty &prop,
                 const uint32_t type,
                 const StageDataType &stage,
-                const IDisplayColorGS101::IDpp &dpp,
+                const typename GsInterfaceType::IDpp &dpp,
                 const uint32_t dppIndex,
                 ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq,
                 bool forceUpdate);
@@ -185,7 +153,6 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
         HistoBlobs mOldHistoBlobs;
 
         std::shared_ptr<IDLHistogram> mHistogramInfo;
-        bool mHistogramInfoRegistered = false;
 
     private:
         const std::string GetPanelInfo(const std::string &sysfs_rel, char delim);

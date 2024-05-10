@@ -17,25 +17,35 @@
 #include "ExynosDeviceModule.h"
 
 #include "ExynosDisplayDrmInterfaceModule.h"
+#include "ExynosPrimaryDisplayModule.h"
 
 extern struct exynos_hwc_control exynosHWCControl;
 
 using namespace gs101;
 
-ExynosDeviceModule::ExynosDeviceModule() : ExynosDevice(), mDisplayColorLoader(DISPLAY_COLOR_LIB) {
+ExynosDeviceModule::ExynosDeviceModule(bool isVrrApiSupported)
+      : ExynosDevice(isVrrApiSupported), mDisplayColorLoader(DISPLAY_COLOR_LIB) {
     exynosHWCControl.skipStaticLayers = false;
 
     std::vector<displaycolor::DisplayInfo> display_info;
     for (uint32_t i = 0; i < mDisplays.size(); i++) {
         ExynosDisplay* display = mDisplays[i];
-        ExynosDisplayDrmInterfaceModule* moduleDisplayInterface =
-                (ExynosDisplayDrmInterfaceModule*)(display->mDisplayInterface.get());
-
+        // TODO(b/288608645): Allow HWC_DISPLAY_EXTERNAL here when displaycolor
+        // supports external displays.
         if (display->mType == HWC_DISPLAY_PRIMARY) {
+            ExynosDisplayDrmInterfaceModule* moduleDisplayInterface =
+                    (ExynosDisplayDrmInterfaceModule*)(display->mDisplayInterface.get());
             moduleDisplayInterface->getDisplayInfo(display_info);
         }
     }
     initDisplayColor(display_info);
+    for (uint32_t i = 0; i < mDisplays.size(); i++) {
+        ExynosDisplay* display = mDisplays[i];
+        if (display->mType == HWC_DISPLAY_PRIMARY) {
+            ExynosPrimaryDisplayModule* modulePrimaryDisplay = (ExynosPrimaryDisplayModule*)display;
+            modulePrimaryDisplay->updateBrightnessTable();
+        }
+    }
 }
 
 ExynosDeviceModule::~ExynosDeviceModule() {
@@ -43,7 +53,7 @@ ExynosDeviceModule::~ExynosDeviceModule() {
 
 int ExynosDeviceModule::initDisplayColor(
         const std::vector<displaycolor::DisplayInfo>& display_info) {
-    mDisplayColorInterface = mDisplayColorLoader.GetDisplayColorGS101(display_info);
+    mDisplayColorInterface = mDisplayColorLoader.GetDisplayColor(display_info);
     if (mDisplayColorInterface == nullptr) {
         ALOGW("%s failed to load displaycolor", __func__);
     }

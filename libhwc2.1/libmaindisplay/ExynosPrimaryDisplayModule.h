@@ -16,8 +16,6 @@
 #ifndef EXYNOS_DISPLAY_MODULE_H
 #define EXYNOS_DISPLAY_MODULE_H
 
-#include <gs101/displaycolor/displaycolor_gs101.h>
-
 #include "ExynosDeviceModule.h"
 #include "ExynosDisplay.h"
 #include "ExynosLayer.h"
@@ -96,8 +94,10 @@ namespace gs101 {
 using namespace displaycolor;
 
 class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
+    using GsInterfaceType = gs::ColorDrmBlobFactory::GsInterfaceType;
     public:
-        ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice *device);
+        ExynosPrimaryDisplayModule(uint32_t index, ExynosDevice* device,
+                                   const std::string& displayName);
         ~ExynosPrimaryDisplayModule();
         void usePreDefinedWindow(bool use);
         virtual int32_t validateWinConfigData();
@@ -116,10 +116,11 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 HwcDimmingStage *outDimmingStage = nullptr) override;
         virtual int deliverWinConfigData();
         virtual int32_t updateColorConversionInfo();
+        virtual int32_t resetColorMappingInfo(ExynosMPPSource* mppSrc);
         virtual int32_t updatePresentColorConversionInfo();
         virtual bool checkRrCompensationEnabled() {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
-            IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+            const DisplayType display = getDcDisplayType();
+            GsInterfaceType* displayColorInterface = getDisplayColorInterface();
             return displayColorInterface
                 ? displayColorInterface->IsRrCompensationEnabled(display)
                 : false;
@@ -148,6 +149,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                     uint32_t dppIdx;
                     // assigned drm plane id in last color setting update
                     uint32_t planeId;
+                    static constexpr uint32_t kPlaneIdNone = std::numeric_limits<uint32_t>::max();
                 };
                 bool colorSettingChanged = false;
                 bool displaySettingDelivered = false;
@@ -229,13 +231,13 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         };
 
         bool hasDisplayColor() {
-            IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+            GsInterfaceType* displayColorInterface = getDisplayColorInterface();
             return displayColorInterface != nullptr;
         }
 
         /* Call getDppForLayer() only if hasDppForLayer() is true */
         bool hasDppForLayer(ExynosMPPSource* layer);
-        const IDisplayColorGS101::IDpp& getDppForLayer(ExynosMPPSource* layer);
+        const GsInterfaceType::IDpp& getDppForLayer(ExynosMPPSource* layer);
         int32_t getDppIndexForLayer(ExynosMPPSource* layer);
         /* Check if layer's assigned plane id has changed, save the new planeId.
          * call only if hasDppForLayer is true */
@@ -246,21 +248,14 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
             return change;
         }
 
-        size_t getNumOfDpp() {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
-            IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
-            return displayColorInterface->GetPipelineData(display)->Dpp().size();
-        };
-
-        const IDisplayColorGS101::IDqe& getDqe()
+        const GsInterfaceType::IDqe& getDqe()
         {
-            const DisplayType display = getDisplayTypeFromIndex(mIndex);
-            IDisplayColorGS101* displayColorInterface = getDisplayColorInterface();
+            const DisplayType display = getDcDisplayType();
+            GsInterfaceType* displayColorInterface = getDisplayColorInterface();
             return displayColorInterface->GetPipelineData(display)->Dqe();
         };
 
-        // primary or secondary
-        DisplayType getBuiltInDisplayType() { return getDisplayTypeFromIndex(mIndex); }
+        int32_t updateBrightnessTable();
 
     private:
         int32_t setLayersColorData();
@@ -298,7 +293,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
                 return false;
         };
 
-        IDisplayColorGS101* getDisplayColorInterface() {
+        GsInterfaceType* getDisplayColorInterface() {
             ExynosDeviceModule* device = (ExynosDeviceModule*)mDevice;
             return device->getDisplayColorInterface();
         }
