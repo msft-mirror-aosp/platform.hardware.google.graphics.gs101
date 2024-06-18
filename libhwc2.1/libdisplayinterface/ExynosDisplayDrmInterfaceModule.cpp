@@ -54,9 +54,6 @@ int32_t ExynosDisplayDrmInterfaceModule::initDrmDevice(DrmDevice *drmDevice)
     if ((ret = ExynosDisplayDrmInterface::initDrmDevice(drmDevice)) != NO_ERROR)
         return ret;
 
-    if (isPrimary() == false)
-        return ret;
-
     mOldDqeBlobs.init(drmDevice);
 
     initOldDppBlobs(drmDevice);
@@ -162,19 +159,17 @@ int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorBlob(
 
     return ret;
 }
+
 int32_t ExynosDisplayDrmInterfaceModule::setDisplayColorSetting(
-        ExynosDisplayDrmInterface::DrmModeAtomicReq &drmReq)
-{
-    if (isPrimary() == false)
-        return NO_ERROR;
+        ExynosDisplayDrmInterface::DrmModeAtomicReq& drmReq) {
     if (!mForceDisplayColorSetting && !mColorSettingChanged)
         return NO_ERROR;
 
-    ExynosPrimaryDisplayModule* display =
-        (ExynosPrimaryDisplayModule*)mExynosDisplay;
+    ExynosDeviceModule* device = static_cast<ExynosDeviceModule*>(mExynosDisplay->mDevice);
+    gs101::ColorManager* colorManager = device->getDisplayColorManager(mExynosDisplay);
 
     int ret = NO_ERROR;
-    const typename GsInterfaceType::IDqe &dqe = display->getDqe();
+    const typename GsInterfaceType::IDqe& dqe = colorManager->getDqe();
 
     if ((mDrmCrtc->cgc_lut_property().id() != 0) &&
         (ret = setDisplayColorBlob(mDrmCrtc->cgc_lut_property(),
@@ -317,9 +312,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
         const std::unique_ptr<DrmPlane> &plane,
         const exynos_win_config_data &config, uint32_t &solidColor)
 {
-    if ((mColorSettingChanged == false) ||
-        (isPrimary() == false))
-        return NO_ERROR;
+    if (mColorSettingChanged == false) return NO_ERROR;
 
     if ((config.assignedMPP == nullptr) ||
         (config.assignedMPP->mAssignedSources.size() == 0)) {
@@ -334,7 +327,12 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
         return -EINVAL;
     }
 
-    ExynosPrimaryDisplayModule* display = (ExynosPrimaryDisplayModule*)mExynosDisplay;
+    ExynosDeviceModule* device = static_cast<ExynosDeviceModule*>(mExynosDisplay->mDevice);
+    ColorManager* colorManager = device->getDisplayColorManager(mExynosDisplay);
+    if (!colorManager) {
+        HWC_LOGE(mExynosDisplay, "%s: no colorManager for this display", __func__);
+        return -EINVAL;
+    }
 
     /*
      * Color conversion of Client and Exynos composition buffer
@@ -342,7 +340,7 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
      * supported by HWC/displaycolor, we need put client composition under
      * control of HWC/displaycolor.
      */
-    if (!display->hasDppForLayer(mppSource)) {
+    if (!colorManager->hasDppForLayer(mppSource)) {
         if (mppSource->mSourceType == MPP_SOURCE_LAYER) {
             HWC_LOGE(mExynosDisplay,
                 "%s: layer need color conversion but there is no IDpp",
@@ -367,9 +365,9 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
         }
     }
 
-    const typename GsInterfaceType::IDpp &dpp = display->getDppForLayer(mppSource);
-    const uint32_t dppIndex = static_cast<uint32_t>(display->getDppIndexForLayer(mppSource));
-    bool planeChanged = display->checkAndSaveLayerPlaneId(mppSource, plane->id());
+    const typename GsInterfaceType::IDpp& dpp = colorManager->getDppForLayer(mppSource);
+    const uint32_t dppIndex = static_cast<uint32_t>(colorManager->getDppIndexForLayer(mppSource));
+    bool planeChanged = colorManager->checkAndSaveLayerPlaneId(mppSource, plane->id());
 
     auto &color = dpp.SolidColor();
     // exynos_win_config_data.color ARGB
