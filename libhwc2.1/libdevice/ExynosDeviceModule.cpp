@@ -17,6 +17,7 @@
 #include "ExynosDeviceModule.h"
 
 #include "ExynosDisplayDrmInterfaceModule.h"
+#include "ExynosExternalDisplayModule.h"
 #include "ExynosPrimaryDisplayModule.h"
 
 extern struct exynos_hwc_control exynosHWCControl;
@@ -30,9 +31,7 @@ ExynosDeviceModule::ExynosDeviceModule(bool isVrrApiSupported)
     std::vector<displaycolor::DisplayInfo> display_info;
     for (uint32_t i = 0; i < mDisplays.size(); i++) {
         ExynosDisplay* display = mDisplays[i];
-        // TODO(b/288608645): Allow HWC_DISPLAY_EXTERNAL here when displaycolor
-        // supports external displays.
-        if (display->mType == HWC_DISPLAY_PRIMARY) {
+        if (display->mType == HWC_DISPLAY_PRIMARY || display->mType == HWC_DISPLAY_EXTERNAL) {
             ExynosDisplayDrmInterfaceModule* moduleDisplayInterface =
                     (ExynosDisplayDrmInterfaceModule*)(display->mDisplayInterface.get());
             moduleDisplayInterface->getDisplayInfo(display_info);
@@ -59,4 +58,18 @@ int ExynosDeviceModule::initDisplayColor(
     }
 
     return NO_ERROR;
+}
+
+ColorManager* ExynosDeviceModule::getDisplayColorManager(ExynosDisplay* display) {
+    if (display->mType == HWC_DISPLAY_PRIMARY) {
+        ExynosPrimaryDisplayModule* primaryDisplay =
+                static_cast<ExynosPrimaryDisplayModule*>(display);
+        return primaryDisplay->getColorManager();
+    } else if (display->mType == HWC_DISPLAY_EXTERNAL) {
+        ExynosExternalDisplayModule* externaDisplay =
+                static_cast<ExynosExternalDisplayModule*>(display);
+        return externaDisplay->getColorManager();
+    }
+    ALOGW("%s: no color manager for display->mType=%d", __func__, display->mType);
+    return nullptr;
 }
