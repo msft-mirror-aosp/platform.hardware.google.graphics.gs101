@@ -290,6 +290,7 @@ int32_t ColorManager::updateColorConversionInfo() {
     displayScene.lhbm_on = false;
     displayScene.hdr_layer_state = displaycolor::HdrLayerState::kHdrNone;
     displayScene.dbv = 1000;
+    displayScene.refresh_rate = std::round(displayScene.refresh_rate);
 
     if (brightnessController) {
         displayScene.force_hdr = brightnessController->isDimSdr();
