@@ -421,7 +421,7 @@ void ExynosDisplayDrmInterfaceModule::SaveBlob::addBlob(
         uint32_t type, uint32_t blob)
 {
     if (type >= blobs.size()) {
-        ALOGE("Invalid dqe blop type: %d", type);
+        ALOGE("%s: Invalid blob type: %u", mBlobClassName, type);
         return;
     }
     if (blobs[type] > 0)
@@ -433,7 +433,7 @@ void ExynosDisplayDrmInterfaceModule::SaveBlob::addBlob(
 uint32_t ExynosDisplayDrmInterfaceModule::SaveBlob::getBlob(uint32_t type)
 {
     if (type >= blobs.size()) {
-        ALOGE("Invalid dqe blop type: %d", type);
+        ALOGE("%s: Invalid blob type: %u", mBlobClassName, type);
         return 0;
     }
     return blobs[type];
