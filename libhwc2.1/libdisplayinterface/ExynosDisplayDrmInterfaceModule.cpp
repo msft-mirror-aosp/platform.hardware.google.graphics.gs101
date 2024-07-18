@@ -408,13 +408,14 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
 
 ExynosDisplayDrmInterfaceModule::SaveBlob::~SaveBlob() {
     clearBlobs();
+    blobs.clear();
 }
 
 void ExynosDisplayDrmInterfaceModule::SaveBlob::clearBlobs() {
-    for (auto &it: blobs) {
-        mDrmDevice->DestroyPropertyBlob(it);
+    for (size_t i = 0; i < blobs.size(); ++i) {
+        mDrmDevice->DestroyPropertyBlob(blobs[i]);
+        blobs[i] = 0;
     }
-    blobs.clear();
 }
 
 void ExynosDisplayDrmInterfaceModule::SaveBlob::addBlob(
