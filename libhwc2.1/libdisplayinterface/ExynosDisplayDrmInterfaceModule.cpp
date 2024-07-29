@@ -408,20 +408,21 @@ int32_t ExynosDisplayDrmInterfaceModule::setPlaneColorSetting(
 
 ExynosDisplayDrmInterfaceModule::SaveBlob::~SaveBlob() {
     clearBlobs();
+    blobs.clear();
 }
 
 void ExynosDisplayDrmInterfaceModule::SaveBlob::clearBlobs() {
-    for (auto &it: blobs) {
-        mDrmDevice->DestroyPropertyBlob(it);
+    for (size_t i = 0; i < blobs.size(); ++i) {
+        mDrmDevice->DestroyPropertyBlob(blobs[i]);
+        blobs[i] = 0;
     }
-    blobs.clear();
 }
 
 void ExynosDisplayDrmInterfaceModule::SaveBlob::addBlob(
         uint32_t type, uint32_t blob)
 {
     if (type >= blobs.size()) {
-        ALOGE("Invalid dqe blop type: %d", type);
+        ALOGE("%s: Invalid blob type: %u", mBlobClassName, type);
         return;
     }
     if (blobs[type] > 0)
@@ -433,7 +434,7 @@ void ExynosDisplayDrmInterfaceModule::SaveBlob::addBlob(
 uint32_t ExynosDisplayDrmInterfaceModule::SaveBlob::getBlob(uint32_t type)
 {
     if (type >= blobs.size()) {
-        ALOGE("Invalid dqe blop type: %d", type);
+        ALOGE("%s: Invalid blob type: %u", mBlobClassName, type);
         return 0;
     }
     return blobs[type];
