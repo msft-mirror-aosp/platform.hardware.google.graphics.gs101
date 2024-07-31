@@ -260,6 +260,7 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 
     getDisplaySceneInfo().displayScene.lhbm_on = mBrightnessController->isLhbmOn();
     getDisplaySceneInfo().displayScene.dbv = mBrightnessController->getBrightnessLevel();
+    getDisplaySceneInfo().displayScene.temperature = getDisplayTemperatue();
     const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->UpdatePresent(display, getDisplaySceneInfo().displayScene)) !=
         0) {
