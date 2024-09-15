@@ -48,6 +48,7 @@ constexpr uint32_t kAtcStStep = 2;
 constexpr char kAtcModeNormalStr[] = "normal";
 constexpr char kAtcModeHbmStr[] = "hbm";
 constexpr char kAtcModePowerSaveStr[] = "power_save";
+constexpr char kAtcModeHdrStr[] = "hdr";
 
 #define ATC_AMBIENT_LIGHT_FILE_NAME "/sys/class/dqe%d/atc/ambient_light"
 #define ATC_ST_FILE_NAME "/sys/class/dqe%d/atc/st"
@@ -174,6 +175,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         int32_t setAtcStDimming(uint32_t target);
         int32_t setAtcEnable(bool enable);
         void checkAtcAnimation();
+        void checkAtcHdrMode();
         bool isInAtcAnimation() {
             if (mAtcStStepCount > 0)
                 return true;
@@ -208,6 +210,7 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         bool mPendingAtcOff;
         bool mForceColorUpdate = false;
         bool mLbeSupported = false;
+        bool isFullScreenHdrLayer();
 
     protected:
         virtual int32_t setPowerMode(int32_t mode) override;
