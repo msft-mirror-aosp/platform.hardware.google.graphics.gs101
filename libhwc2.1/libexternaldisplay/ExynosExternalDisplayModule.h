@@ -47,7 +47,7 @@ public:
 
     bool mForceColorUpdate = false;
     bool isForceColorUpdate() const { return mForceColorUpdate; }
-    void setForceColorUpdate(bool force) { mForceColorUpdate = force; }
+    void setForceColorUpdate(bool force) override { mForceColorUpdate = force; }
     int deliverWinConfigData() override;
 
     void invalidate() override;
