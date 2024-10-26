@@ -52,6 +52,9 @@ public:
 
     void invalidate() override;
 
+protected:
+    virtual int32_t setPowerMode(int32_t mode) override;
+
 private:
     std::unique_ptr<ColorManager> mColorManager;
 
