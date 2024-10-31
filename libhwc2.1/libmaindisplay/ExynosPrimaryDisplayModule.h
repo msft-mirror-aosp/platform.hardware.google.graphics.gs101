@@ -134,6 +134,8 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         virtual void setLbeAmbientLight(int value);
         virtual LbeState getLbeState();
 
+        void setForceColorUpdate(bool force) override { mForceColorUpdate = force; }
+
         virtual PanelCalibrationStatus getPanelCalibrationStatus();
 
         bool hasDisplayColor() {
@@ -189,7 +191,6 @@ class ExynosPrimaryDisplayModule : public ExynosPrimaryDisplay {
         }
 
         bool isForceColorUpdate() const { return mForceColorUpdate; }
-        void setForceColorUpdate(bool force) { mForceColorUpdate = force; }
         bool isDisplaySwitched(int32_t mode, int32_t prevMode);
 
         std::map<std::string, atc_mode> mAtcModeSetting;
