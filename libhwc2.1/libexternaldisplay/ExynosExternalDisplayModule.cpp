@@ -131,6 +131,17 @@ int ExynosExternalDisplayModule::deliverWinConfigData() {
     return ret;
 }
 
+int32_t ExynosExternalDisplayModule::setPowerMode(int32_t mode) {
+    int32_t ret;
+
+    ret = ExynosExternalDisplay::setPowerMode(mode);
+
+    if (ret == HWC2_ERROR_NONE && mode == HWC_POWER_MODE_NORMAL)
+        setForceColorUpdate(true);
+
+    return ret;
+}
+
 void ExynosExternalDisplayModule::invalidate() {
     ExynosExternalDisplay::invalidate();
 
