@@ -47,10 +47,13 @@ public:
 
     bool mForceColorUpdate = false;
     bool isForceColorUpdate() const { return mForceColorUpdate; }
-    void setForceColorUpdate(bool force) { mForceColorUpdate = force; }
+    void setForceColorUpdate(bool force) override { mForceColorUpdate = force; }
     int deliverWinConfigData() override;
 
     void invalidate() override;
+
+protected:
+    virtual int32_t setPowerMode(int32_t mode) override;
 
 private:
     std::unique_ptr<ColorManager> mColorManager;
