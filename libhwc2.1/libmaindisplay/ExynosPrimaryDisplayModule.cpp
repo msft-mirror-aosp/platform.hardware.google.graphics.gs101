@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define ATRACE_TAG (ATRACE_TAG_GRAPHICS | ATRACE_TAG_HAL)
+
 #include "ExynosPrimaryDisplayModule.h"
 
 #include <android-base/file.h>
@@ -213,6 +215,8 @@ int ExynosPrimaryDisplayModule::deliverWinConfigData()
                                          forceDisplayColorSetting);
     }
 
+    checkAtcHdrMode();
+
     ret = ExynosDisplay::deliverWinConfigData();
 
     checkAtcAnimation();
@@ -256,6 +260,7 @@ int32_t ExynosPrimaryDisplayModule::updatePresentColorConversionInfo()
 
     getDisplaySceneInfo().displayScene.lhbm_on = mBrightnessController->isLhbmOn();
     getDisplaySceneInfo().displayScene.dbv = mBrightnessController->getBrightnessLevel();
+    getDisplaySceneInfo().displayScene.temperature = getDisplayTemperatue();
     const DisplayType display = getDcDisplayType();
     if ((ret = displayColorInterface->UpdatePresent(display, getDisplaySceneInfo().displayScene)) !=
         0) {
@@ -407,6 +412,7 @@ int32_t ExynosPrimaryDisplayModule::setAtcAmbientLight(uint32_t ambient_light) {
 }
 
 int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
+    ATRACE_CALL();
     auto mode_data = mAtcModeSetting.find(mode_name);
     uint32_t ambient_light = 0;
     uint32_t strength = 0;
@@ -458,8 +464,11 @@ int32_t ExynosPrimaryDisplayModule::setAtcMode(std::string mode_name) {
 }
 void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
     if (!mAtcInit) return;
+
     std::string modeStr;
     bool enhanced_hbm = false;
+    bool fullHdrLayer = isFullScreenHdrLayer();
+
     switch (state) {
         case LbeState::OFF:
             mCurrentLux = 0;
@@ -482,7 +491,8 @@ void ExynosPrimaryDisplayModule::setLbeState(LbeState state) {
             return;
     }
 
-    if (setAtcMode(modeStr) != NO_ERROR) return;
+    if (fullHdrLayer && state != LbeState::OFF) checkAtcHdrMode();
+    else if (setAtcMode(modeStr) != NO_ERROR) return;
 
     mBrightnessController->processEnhancedHbm(enhanced_hbm);
     mBrightnessController->setOutdoorVisibility(state);
@@ -625,4 +635,33 @@ bool ExynosPrimaryDisplayModule::isDisplaySwitched(int32_t mode, int32_t prevMod
 
     return (device->getActiveDisplay() != mIndex) && (prevMode == HWC_POWER_MODE_OFF) &&
             (mode != HWC_POWER_MODE_OFF);
+}
+
+void ExynosPrimaryDisplayModule::checkAtcHdrMode() {
+    ATRACE_CALL();
+    if (!mAtcInit) return;
+
+    auto it = mAtcModeSetting.find(kAtcModeHdrStr);
+    if (it == mAtcModeSetting.end()) {
+        return;
+    }
+
+    bool hdrModeActive = (mCurrentAtcModeName == kAtcModeHdrStr);
+    bool fullHdrLayer = isFullScreenHdrLayer();
+
+    if (fullHdrLayer) {
+        if (!hdrModeActive && (mCurrentLbeState != LbeState::OFF)) {
+            setAtcMode(kAtcModeHdrStr);
+            ALOGI("HdrLayer on to set atc hdr mode");
+        }
+    } else {
+        if (hdrModeActive) {
+            setLbeState(mCurrentLbeState);
+            ALOGI("HdrLayer off to restore Lbe State");
+        }
+    }
+}
+
+bool ExynosPrimaryDisplayModule::isFullScreenHdrLayer() {
+    return mBrightnessController->getHdrLayerState() == HdrLayerState::kHdrLarge;
 }

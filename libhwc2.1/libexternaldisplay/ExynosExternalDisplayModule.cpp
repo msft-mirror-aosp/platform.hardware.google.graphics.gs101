@@ -130,3 +130,14 @@ int ExynosExternalDisplayModule::deliverWinConfigData() {
 
     return ret;
 }
+
+void ExynosExternalDisplayModule::invalidate() {
+    ExynosExternalDisplay::invalidate();
+
+    // invalidate() is invoked when we handle hotplug event for the external display.
+    // we need to call clear() here to ensure both layerDataMappingInfo and
+    // prev_layerDataMappingInfo are clearead in DisplaySceneInfo, otherwise old
+    // mappings preserved in prev_layerDataMappingInfo will be re-used after the
+    // next hotplug, causing color issues (see b/325549729).
+    getDisplaySceneInfo().clear();
+}

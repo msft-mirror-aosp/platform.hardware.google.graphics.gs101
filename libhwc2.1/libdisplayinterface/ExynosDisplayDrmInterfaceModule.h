@@ -60,9 +60,12 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
         int32_t setHistogramControl(hidl_histogram_control_t enabled);
         virtual int32_t setHistogramData(void *bin);
 
+        void clearOldCrtcBlobs() override { mOldDqeBlobs.clearBlobs(); }
+
     protected:
         class SaveBlob {
             public:
+                SaveBlob(const char *blobClassName) : mBlobClassName(blobClassName) {}
                 ~SaveBlob();
                 void init(DrmDevice *drmDevice, uint32_t size) {
                     mDrmDevice = drmDevice;
@@ -70,7 +73,10 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                 };
                 void addBlob(uint32_t type, uint32_t blob);
                 uint32_t getBlob(uint32_t type);
+                void clearBlobs();
+
             private:
+                const char *mBlobClassName;
                 DrmDevice *mDrmDevice = NULL;
                 std::vector<uint32_t> blobs;
         };
@@ -86,6 +92,7 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                     CGC_DITHER,
                     DQE_BLOB_NUM // number of DQE blobs
                 };
+                DqeBlobs() : SaveBlob("DqeBlobs") {}
                 void init(DrmDevice *drmDevice) {
                     SaveBlob::init(drmDevice, DQE_BLOB_NUM);
                 };
@@ -99,7 +106,7 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                     OETF,
                     DPP_BLOB_NUM // number of DPP blobs
                 };
-                DppBlobs(DrmDevice *drmDevice, uint32_t pid) : planeId(pid) {
+                DppBlobs(DrmDevice *drmDevice, uint32_t pid) : SaveBlob("DppBlobs"), planeId(pid) {
                     SaveBlob::init(drmDevice, DPP_BLOB_NUM);
                 };
                 uint32_t planeId;
@@ -146,6 +153,7 @@ class ExynosDisplayDrmInterfaceModule : public ExynosDisplayDrmInterface {
                 WEIGHTS,
                 HISTO_BLOB_NUM // number of Histogram blobs
             };
+            HistoBlobs() : SaveBlob("HistoBlobs") {}
             void init(DrmDevice *drmDevice) { SaveBlob::init(drmDevice, HISTO_BLOB_NUM); }
         };
         int32_t setDisplayHistoBlob(const DrmProperty &prop, const uint32_t type,
